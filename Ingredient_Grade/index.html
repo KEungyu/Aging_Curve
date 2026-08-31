@@ -1,1 +1,611 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>성분표 등급 예측</title>
+<style>
+  :root{
+    --bg: #f7f5ef;
+    --panel: #ffffff;
+    --ink: #171512;
+    --ink-dim: #6b655c;
+    --ink-faint: #b4ab9c;
+    --line: #171512;
+    --line-soft: #ddd6c8;
+    --a: #2e7d32;
+    --b: #8bc34a;
+    --c: #fbc02d;
+    --d: #f57c00;
+    --e: #d32f2f;
+  }
 
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:"Arial Narrow", "Noto Sans KR", -apple-system, sans-serif;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:0 28px; }
+
+  /* ---------- nav ---------- */
+  header.top{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:26px 28px;
+    max-width:900px;
+    margin:0 auto;
+  }
+  .wordmark{
+    font-family:"Arial Narrow", sans-serif;
+    font-weight:800;
+    font-size:16px;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+  }
+  .badge{
+    font-size:12px;
+    color:var(--ink-dim);
+    border:1.5px solid var(--line);
+    padding:5px 12px;
+  }
+
+  /* ---------- hero: nutrition facts panel ---------- */
+  .hero{ padding:36px 0 20px; }
+  .hero-lead{
+    font-size:14px;
+    color:var(--ink-dim);
+    margin-bottom:18px;
+  }
+  .hero-title{
+    font-size:clamp(40px, 8vw, 72px);
+    line-height:0.98;
+    text-transform:uppercase;
+  }
+  .hero-sub{
+    max-width:520px;
+    margin-top:18px;
+    font-size:16.5px;
+    color:var(--ink-dim);
+  }
+
+  .nfp{
+    margin-top:36px;
+    background:var(--panel);
+    border:3px solid var(--line);
+    padding:14px 20px 20px;
+    max-width:420px;
+  }
+  .nfp-head{
+    font-size:26px;
+    font-weight:800;
+    text-transform:uppercase;
+    border-bottom:9px solid var(--line);
+    padding-bottom:6px;
+    font-family:"Arial Narrow", sans-serif;
+  }
+  .nfp-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:7px 0;
+    border-bottom:1px solid var(--line);
+    font-size:14px;
+  }
+  .nfp-row.thick{ border-bottom:5px solid var(--line); }
+  .nfp-row .label{ font-weight:700; }
+  .nfp-row .value{ font-family: ui-monospace, monospace; }
+  .nfp-grade-scale{
+    display:flex;
+    height:22px;
+    margin-top:10px;
+    border:1.5px solid var(--line);
+  }
+  .nfp-grade-scale span{
+    flex:1;
+    display:flex; align-items:center; justify-content:center;
+    font-family:ui-monospace, monospace;
+    font-size:12px;
+    font-weight:700;
+    color:#fff;
+  }
+
+  /* ---------- sections ---------- */
+  section{
+    position:relative;
+    padding:88px 0;
+    border-top:2px solid var(--line);
+  }
+  .sec-head{
+    display:flex;
+    gap:20px;
+    align-items:baseline;
+    margin-bottom:34px;
+  }
+  .sec-num{
+    font-family:ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size:15px;
+    color:var(--d);
+    flex:none;
+    padding-top:4px;
+  }
+  .sec-title{
+    font-size:clamp(26px, 4.2vw, 38px);
+    text-transform:uppercase;
+  }
+  .sec-watermark{
+    position:absolute;
+    right:0; top:60px;
+    font-family:"Arial Narrow", sans-serif;
+    font-weight:800;
+    font-size:120px;
+    color:var(--line-soft);
+    z-index:0;
+    user-select:none;
+    line-height:1;
+    opacity:0.5;
+  }
+  section > .wrap > *:not(.sec-watermark){ position:relative; z-index:1; }
+
+  .lede{ max-width:620px; font-size:17.5px; color:var(--ink-dim); }
+  .lede strong{ color:var(--ink); font-weight:700; }
+  .body-col{ max-width:620px; margin-top:16px; color:var(--ink-dim); font-size:15.5px; }
+
+  .why-box{
+    margin-top:30px;
+    border-left:3px solid var(--d);
+    padding:4px 0 4px 22px;
+    max-width:600px;
+  }
+  .why-label{
+    font-family:ui-monospace, monospace;
+    font-size:13px;
+    color:var(--d);
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .why-box p{ color:var(--ink-dim); font-size:15px; margin:8px 0 0; }
+  .why-box p:first-of-type{ margin-top:0; }
+
+  /* ---------- reasons ---------- */
+  .reasons{
+    margin-top:36px;
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:1px;
+    background:var(--line);
+    border:2px solid var(--line);
+  }
+  .reason{ background:var(--bg); padding:26px 22px; }
+  .reason .rk{ font-family:ui-monospace, monospace; font-size:12.5px; color:var(--ink-faint); }
+  .reason h3{ margin-top:12px; font-size:18px; text-transform:uppercase; }
+  .reason p{ margin-top:10px; font-size:14px; color:var(--ink-dim); }
+  @media (max-width:760px){ .reasons{ grid-template-columns:1fr; } }
+
+  /* ---------- ingredient label example ---------- */
+  .ing-label{
+    margin-top:32px;
+    background:var(--panel);
+    border:3px solid var(--line);
+    max-width:560px;
+  }
+  .ing-label-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 18px;
+    border-bottom:3px solid var(--line);
+  }
+  .ing-label-head .tag{
+    font-family:ui-monospace, monospace;
+    font-size:12px;
+    color:var(--ink-faint);
+  }
+  .ing-label-head .grade{
+    width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:ui-monospace, monospace;
+    font-weight:800;
+    font-size:18px;
+    color:#fff;
+    background:var(--d);
+  }
+  .ing-label-body{ padding:18px; }
+  .ing-list{
+    font-size:14px;
+    color:var(--ink-dim);
+    line-height:1.9;
+  }
+  .ing-list .hi{ color:var(--e); font-weight:700; }
+  .ing-list .mid{ color:var(--d); font-weight:700; }
+
+  .data-note{
+    margin-top:22px;
+    display:flex; gap:14px; align-items:flex-start;
+    max-width:600px; color:var(--ink-dim); font-size:14.5px;
+  }
+  .data-note .mark{
+    flex:none; width:22px; height:22px;
+    border:1.5px solid var(--d);
+    color:var(--d);
+    font-family:ui-monospace, monospace; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:2px;
+  }
+
+  /* ---------- pipeline ---------- */
+  .pipeline{
+    margin-top:40px;
+    border:2px solid var(--line);
+    padding:36px 28px;
+    background:var(--panel);
+  }
+  .pipe-row{ display:flex; align-items:center; flex-wrap:wrap; }
+  .pipe-box{
+    border:1.5px solid var(--ink-dim);
+    background:var(--bg);
+    padding:16px 18px;
+    min-width:150px;
+  }
+  .pipe-box.accent{ border-color:var(--d); border-width:2px; }
+  .pipe-box .pb-label{
+    font-family:ui-monospace, monospace; font-size:10.5px;
+    color:var(--ink-faint); text-transform:uppercase;
+  }
+  .pipe-box .pb-title{ margin-top:6px; font-size:15px; font-weight:700; }
+  .pipe-box .pb-items{ margin-top:8px; font-size:12.5px; color:var(--ink-dim); line-height:1.7; }
+  .pipe-arrow{
+    flex:none; width:44px; height:2px; background:var(--ink-faint);
+    position:relative; margin:0 6px;
+  }
+  .pipe-arrow::after{
+    content:""; position:absolute; right:0; top:50%;
+    width:8px; height:8px;
+    border-top:2px solid var(--ink-faint); border-right:2px solid var(--ink-faint);
+    transform:translateY(-50%) rotate(45deg);
+  }
+  @media (max-width:760px){
+    .pipe-row{ flex-direction:column; align-items:stretch; }
+    .pipe-arrow{ width:2px; height:30px; margin:2px 0 2px 20px; }
+    .pipe-arrow::after{ right:-3px; top:auto; bottom:0; transform:rotate(135deg); }
+  }
+
+  .grade-output{
+    margin-top:30px; padding-top:26px; border-top:1px dashed var(--line-soft);
+  }
+  .grade-bar{ display:flex; height:38px; border:2px solid var(--line); }
+  .grade-bar span{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    font-family:ui-monospace, monospace; font-weight:800; color:#fff; font-size:15px;
+    position:relative;
+  }
+  .grade-bar span.picked::after{
+    content:"▲"; position:absolute; bottom:-16px; font-size:12px; color:var(--ink);
+  }
+
+  .output-note{ margin-top:30px; display:flex; gap:26px; flex-wrap:wrap; }
+  .output-item{ flex:1 1 240px; }
+  .output-item .oi-num{ font-family:ui-monospace, monospace; color:var(--d); font-size:13px; }
+  .output-item h4{ margin:8px 0 0; font-size:16.5px; }
+  .output-item p{ margin:8px 0 0; font-size:14px; color:var(--ink-dim); }
+
+  /* ---------- usage grid ---------- */
+  .usage-grid{
+    margin-top:36px;
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:1px;
+    background:var(--line);
+    border:2px solid var(--line);
+  }
+  .usage-card{ background:var(--bg); padding:28px 24px; }
+  .usage-icon{ font-size:24px; line-height:1; }
+  .usage-card h3{ margin-top:14px; font-size:17px; text-transform:uppercase; }
+  .usage-card p{ margin-top:10px; font-size:14px; color:var(--ink-dim); }
+  @media (max-width:760px){ .usage-grid{ grid-template-columns:1fr; } }
+
+  footer{
+    padding:52px 0 56px;
+    border-top:2px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+    color:var(--ink-faint); font-size:13px;
+  }
+  footer .fmark{ font-family:"Arial Narrow", sans-serif; font-weight:800; color:var(--ink-dim); }
+
+  ::selection{ background:var(--d); color:#fff; }
+  :focus-visible{ outline:2px solid var(--d); outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wordmark">🥫 성분표 · 건강등급 프로젝트</div>
+  <div class="badge">DL FINAL PROJECT</div>
+</header>
+
+<main class="wrap">
+
+  <section class="hero" style="border:none; padding-top:16px;">
+    <div class="hero-lede" style="display:none;"></div>
+    <div class="hero-title">성분표<br>등급 예측</div>
+    <p class="hero-sub">
+      뒷면 깨알같이 적힌 성분표, 다들 그냥 지나친다.
+      그 텍스트만 보고 이 식품이 몸에 어떨지 등급을 매긴다.
+    </p>
+
+    <div class="nfp">
+      <div class="nfp-head">프로젝트 정보</div>
+      <div class="nfp-row thick"><span class="label">입력</span><span class="value">성분표 사진</span></div>
+      <div class="nfp-row"><span class="label">모델</span><span class="value">Transformer</span></div>
+      <div class="nfp-row"><span class="label">데이터</span><span class="value">Open Food Facts</span></div>
+      <div class="nfp-row thick"><span class="label">출력</span><span class="value">건강등급 A–E</span></div>
+      <div class="nfp-grade-scale">
+        <span style="background:var(--a)">A</span>
+        <span style="background:var(--b)">B</span>
+        <span style="background:var(--c); color:#171512">C</span>
+        <span style="background:var(--d)">D</span>
+        <span style="background:var(--e)">E</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01 -->
+  <section id="what">
+    <div class="sec-watermark">01</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">01 / 정의</div>
+        <h2 class="sec-title">뭘 하는 프로젝트인가</h2>
+      </div>
+      <p class="lede">
+        식품 뒷면의 성분표는 누구나 볼 수 있지만, <strong>제대로 읽는 사람은 거의 없다.</strong>
+        "정제수, 액상과당, 산도조절제, 합성착향료..." — 읽어도 뭐가 문제인지 판단이 안 선다.
+      </p>
+      <p class="body-col">
+        이 프로젝트는 그 성분표 텍스트 하나만 넣으면, 이 식품이 건강에 어떤 등급인지
+        (A부터 E까지) 자동으로 매겨주는 모델을 만든다. 성분표를 사진으로
+        찍기만 하면 등급이 바로 뜨도록, 텍스트 인식과 등급 예측을 이어붙인다.
+      </p>
+
+      <div class="why-box">
+        <div class="why-label">🥫 왜 이 프로젝트인가</div>
+        <p>
+          "무첨가", "저당" 같은 마케팅 문구는 포장 앞면에 넘쳐나는데, 정작 뒷면
+          성분표를 해석해주는 도구는 거의 없다. 소비자가 매번 성분 하나하나를
+          검색해볼 수도 없는 노릇이라, 그 판단을 대신해줄 만한 게 필요하다고 생각했다.
+        </p>
+        <p>
+          성분표는 결국 자유롭게 나열된 텍스트라, 사람이 몇 개 위험 성분
+          리스트를 정해두는 식으로는 한계가 뚜렷하다. 계속 새로운 첨가물이
+          생기고, 조합에 따라 의미가 달라지기 때문에 — 데이터로 직접 패턴을
+          학습하는 접근이 필요하다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="why-dl">
+    <div class="sec-watermark">02</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">02 / 근거</div>
+        <h2 class="sec-title">왜 딥러닝인가</h2>
+      </div>
+      <p class="lede">
+        성분표는 표 몇 칸으로 요약되는 정보가 아니라,
+        <strong>순서를 가진 텍스트 나열</strong>이다.
+      </p>
+
+      <div class="reasons">
+        <div class="reason">
+          <div class="rk">REASON 01</div>
+          <h3>텍스트 자체가 신호다</h3>
+          <p>
+            성분명은 정형화된 숫자가 아니라 자유롭게 적힌 단어들이다.
+            "합성착향료"와 "천연향료"의 차이, 성분 조합이 만드는 의미는
+            문맥을 통째로 읽어야 판단된다. 규칙 몇 개로는 못 잡는다.
+          </p>
+        </div>
+        <div class="reason">
+          <div class="rk">REASON 02</div>
+          <h3>순서에 정보가 있다</h3>
+          <p>
+            식품표시법상 성분은 함량이 많은 순서대로 적힌다. 앞쪽에 뭐가
+            나오는지, 그 순서 자체가 "얼마나 들어있는지"를 암시하는
+            정보라 순서를 보존하는 모델이 유리하다.
+          </p>
+        </div>
+        <div class="reason">
+          <div class="rk">REASON 03</div>
+          <h3>새로운 조합에도 통해야 한다</h3>
+          <p>
+            첨가물은 계속 새로 생기고 조합도 매번 다르다. 본 적 없는
+            성분 조합을 만나도 어느 정도 판단할 수 있어야 하는데, 이건
+            사전학습된 언어모델을 전이했을 때 특히 강해지는 영역이다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="data">
+    <div class="sec-watermark">03</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">03 / 데이터</div>
+        <h2 class="sec-title">어떤 데이터를 쓰는가</h2>
+      </div>
+      <p class="lede">
+        <strong>Open Food Facts</strong> — 전 세계 자원봉사자들이 만든 무료 식품 데이터베이스.
+      </p>
+      <p class="body-col">
+        300만 개가 넘는 식품의 성분표 텍스트와, 이미 공식적으로 계산된
+        Nutri-Score(A~E 등급)가 라벨로 붙어 있다. 177개국
+        데이터가 쌓인 오픈 데이터라 접근도 쉽고, 이미 등급이 매겨져 있어
+        라벨링 비용이 들지 않는다.
+      </p>
+
+      <div class="ing-label">
+        <div class="ing-label-head">
+          <span class="tag">예시 · 가상의 제품 P</span>
+          <span class="grade">D</span>
+        </div>
+        <div class="ing-label-body">
+          <div class="ing-list">
+            정제수, 백설탕, <span class="hi">액상과당</span>, 식물성크림(팜유),
+            <span class="mid">산도조절제</span>, 카라멜색소, <span class="hi">합성착향료</span>,
+            비타민C, 정제소금
+          </div>
+        </div>
+      </div>
+
+      <div class="data-note">
+        <span class="mark">i</span>
+        <p style="margin:0;">
+          위는 구조를 보여주기 위해 만든 가상의 예시다. 실제 데이터에서는
+          이런 성분 나열 하나하나에 이미 A~E 등급이 매겨져 있어, 모델이
+          "어떤 성분 조합이 어떤 등급으로 이어지는지"를 그대로 학습한다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="pipeline">
+    <div class="sec-watermark">04</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">04 / 구조</div>
+        <h2 class="sec-title">입력과 출력</h2>
+      </div>
+      <p class="lede">
+        성분표 <strong>사진 한 장</strong>을 넣으면, 등급 하나가 나온다.
+      </p>
+      <p class="body-col">
+        가상의 제품 P로 이어서 보면 — 성분표를 카메라로 찍으면, 먼저 사진
+        속 글자를 텍스트로 읽어낸다(OCR). "정제수, 백설탕, 액상과당..."처럼
+        추출된 텍스트 전체를 순서 그대로 모델에 넣고, 모델은 이 나열을
+        통째로 읽어 A부터 E 중 하나의 등급으로 분류한다. 이 프로젝트가
+        새로 학습하는 부분은 <strong style="color:var(--ink)">추출된 텍스트로 등급을 매기는 모델</strong>이고,
+        글자를 읽어내는 OCR 자체는 기존에 잘 만들어진 도구를 가져다 쓴다.
+      </p>
+
+      <div class="pipeline">
+        <div class="pipe-row">
+          <div class="pipe-box">
+            <div class="pb-label">Input · 사진</div>
+            <div class="pb-title">성분표 촬영</div>
+            <div class="pb-items">제품 P 성분표<br>사진 한 장</div>
+          </div>
+
+          <div class="pipe-arrow"></div>
+
+          <div class="pipe-box">
+            <div class="pb-label">OCR · 기존 도구</div>
+            <div class="pb-title">텍스트 추출</div>
+            <div class="pb-items">정제수 → 백설탕 → 액상과당<br>→ 팜유 → 산도조절제 → ⋯</div>
+          </div>
+
+          <div class="pipe-arrow"></div>
+
+          <div class="pipe-box accent">
+            <div class="pb-label">Encoder · 학습 대상</div>
+            <div class="pb-title">텍스트 인코더</div>
+            <div class="pb-items">추출된 성분 나열을<br>하나의 벡터로 압축</div>
+          </div>
+
+          <div class="pipe-arrow"></div>
+
+          <div class="pipe-box accent">
+            <div class="pb-label">Output · 등급</div>
+            <div class="pb-title">건강 등급</div>
+            <div class="pb-items">A / B / C / D / E<br>중 하나</div>
+          </div>
+        </div>
+
+        <div class="grade-output">
+          <div class="grade-bar">
+            <span style="background:var(--a)">A</span>
+            <span style="background:var(--b)">B</span>
+            <span style="background:var(--c); color:#171512">C</span>
+            <span class="picked" style="background:var(--d)">D</span>
+            <span style="background:var(--e)">E</span>
+          </div>
+        </div>
+
+        <div class="output-note">
+          <div class="output-item">
+            <div class="oi-num">핵심 출력</div>
+            <h4>건강 등급 (A~E)</h4>
+            <p>성분표 하나당 등급 하나. Open Food Facts의 실제 Nutri-Score와 바로 대조해 정확도를 잰다.</p>
+          </div>
+          <div class="output-item">
+            <div class="oi-num">부가 정보</div>
+            <h4>등급에 영향을 준 성분</h4>
+            <p>어떤 단어(성분)에 모델이 크게 반응했는지 보여주면, 등급 이유까지 함께 설명할 수 있다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="usage">
+    <div class="sec-watermark">05</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">05 / 활용</div>
+        <h2 class="sec-title">이 등급, 어디에 쓰나</h2>
+      </div>
+      <p class="lede">
+        성분표 하나로 등급이 매겨지는 순간, 여러 자리에서 쓸모가 생긴다.
+      </p>
+
+      <div class="usage-grid">
+        <div class="usage-card">
+          <div class="usage-icon">🛒</div>
+          <h3>장보기 보조 앱</h3>
+          <p>사진으로 성분표를 찍으면 바로 등급이 뜨는 소비자용 서비스로 그대로 확장 가능.</p>
+        </div>
+        <div class="usage-card">
+          <div class="usage-icon">🏭</div>
+          <h3>식품 기업 자체 검토</h3>
+          <p>신제품 출시 전, 성분 조합을 바꿔가며 등급이 어떻게 변하는지 미리 확인하는 내부 도구.</p>
+        </div>
+        <div class="usage-card">
+          <div class="usage-icon">🏪</div>
+          <h3>유통사 매대 관리</h3>
+          <p>입점 상품들을 등급별로 자동 분류해, 건강 지향 코너를 꾸리는 데 참고 자료로 활용.</p>
+        </div>
+        <div class="usage-card">
+          <div class="usage-icon">🏛️</div>
+          <h3>소비자 보호·모니터링</h3>
+          <p>"무첨가" 같은 문구가 실제 등급과 얼마나 맞는지, 표시 실태를 점검하는 근거 자료로 활용.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap">
+  <div class="fmark">🥫 INGREDIENT GRADE</div>
+  <div>Open Food Facts · Deep Learning Final Project</div>
+</footer>
+
+</body>
+</html>
