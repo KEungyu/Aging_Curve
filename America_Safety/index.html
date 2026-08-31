@@ -1,1 +1,766 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>여행 안전도 예측</title>
+<style>
+  :root{
+    --bg: #0f1b2d;
+    --panel: #16233d;
+    --ink: #eef1f5;
+    --ink-dim: #8c98ad;
+    --ink-faint: #4c5972;
+    --line: #2a3a56;
+    --line-soft: #1e2c46;
+    --gold: #c9a15a;
+    --l1: #2e86de;
+    --l2: #f1c40f;
+    --l3: #e67e22;
+    --l4: #e74c3c;
+  }
 
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  h1,h2,h3{
+    font-family:"Arial Narrow", "Noto Sans KR", -apple-system, sans-serif;
+    font-weight:800;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:0 28px; }
+
+  header.top{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:26px 28px; max-width:900px; margin:0 auto;
+  }
+  .wordmark{
+    font-family:"Arial Narrow", sans-serif; font-weight:800;
+    font-size:16px; letter-spacing:0.04em; text-transform:uppercase;
+  }
+  .badge{
+    font-size:12px; color:var(--ink-dim);
+    border:1.5px solid var(--line); padding:5px 12px;
+  }
+
+  .flag-ribbon{
+    height:5px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--l4) 0px, var(--l4) 40px,
+      var(--ink) 40px, var(--ink) 44px,
+      var(--l1) 44px, var(--l1) 84px,
+      var(--ink) 84px, var(--ink) 88px
+    );
+    opacity:0.35;
+  }
+
+  /* ---------- hero ---------- */
+  .hero{ padding:36px 0 20px; }
+  .hero-title{ font-size:clamp(38px, 7.5vw, 66px); line-height:1.02; text-transform:uppercase; }
+  .hero-sub{ max-width:540px; margin-top:18px; font-size:16.5px; color:var(--ink-dim); }
+
+  .advisory{ margin-top:36px; background:var(--panel); border:1.5px solid var(--gold); max-width:440px; }
+  .advisory-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:12px 18px; border-bottom:1.5px solid var(--gold);
+  }
+  .advisory-head .seal{
+    font-family:ui-monospace, monospace; font-size:11px; color:var(--gold);
+    letter-spacing:0.08em; text-transform:uppercase;
+  }
+  .advisory-body{ padding:16px 18px; }
+  .advisory-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding:6px 0; border-bottom:1px dashed var(--line); font-size:14px;
+  }
+  .advisory-row .label{ color:var(--ink-dim); }
+  .advisory-row .value{ font-family:ui-monospace, monospace; text-align:right; }
+  .level-bar{ display:flex; height:24px; margin-top:14px; border:1px solid var(--line); }
+  .level-bar span{
+    flex:1; display:flex; align-items:center; justify-content:center;
+    font-family:ui-monospace, monospace; font-size:11px; font-weight:700; color:#0f1b2d;
+  }
+
+  /* ---------- sections ---------- */
+  section{ position:relative; padding:84px 0; border-top:1px solid var(--line); }
+  .sec-head{ display:flex; gap:20px; align-items:baseline; margin-bottom:32px; }
+  .sec-num{
+    font-family:ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size:14px; color:var(--gold); flex:none; padding-top:4px;
+  }
+  .sec-title{ font-size:clamp(24px, 4vw, 36px); text-transform:uppercase; }
+  .sec-watermark{
+    position:absolute; right:0; top:56px;
+    font-family:"Arial Narrow", sans-serif; font-weight:800; font-size:110px;
+    color:var(--line-soft); z-index:0; user-select:none; line-height:1;
+  }
+  section > .wrap > *:not(.sec-watermark){ position:relative; z-index:1; }
+
+  .lede{ max-width:620px; font-size:17px; color:var(--ink-dim); }
+  .lede strong{ color:var(--ink); font-weight:700; }
+  .body-col{ max-width:620px; margin-top:16px; color:var(--ink-dim); font-size:15px; }
+
+  .why-box{ margin-top:28px; border-left:3px solid var(--gold); padding:4px 0 4px 22px; max-width:600px; }
+  .why-label{
+    font-family:ui-monospace, monospace; font-size:13px; color:var(--gold);
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  .why-box p{ color:var(--ink-dim); font-size:14.5px; margin:8px 0 0; }
+  .why-box p:first-of-type{ margin-top:0; }
+
+  .reasons{
+    margin-top:34px; display:grid; grid-template-columns:repeat(3, 1fr);
+    gap:1px; background:var(--line); border:1px solid var(--line);
+  }
+  .reason{ background:var(--bg); padding:24px 20px; }
+  .reason .rk{ font-family:ui-monospace, monospace; font-size:12px; color:var(--ink-faint); }
+  .reason h3{ margin-top:12px; font-size:17px; text-transform:uppercase; }
+  .reason p{ margin-top:10px; font-size:13.5px; color:var(--ink-dim); }
+  @media (max-width:760px){ .reasons{ grid-template-columns:1fr; } }
+
+  .scope-box{ margin-top:30px; border:1px solid var(--line); background:var(--panel); padding:22px 24px; }
+  .scope-head{
+    display:flex; justify-content:space-between; align-items:center;
+    font-family:ui-monospace, monospace; font-size:12px; color:var(--ink-faint);
+    margin-bottom:14px; text-transform:uppercase;
+  }
+  .city-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .city-chip{ border:1px solid var(--line); padding:6px 12px; font-size:13px; display:flex; align-items:center; gap:6px; }
+  .city-chip.train{ border-color:var(--l1); color:var(--l1); }
+  .city-chip.test{ border-color:var(--l4); color:var(--l4); }
+  .city-chip.added{ border-color:var(--gold); color:var(--gold); border-style:dashed; }
+  .city-chip .dot{ width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .city-chip.excluded{ color:var(--ink-faint); border-style:dashed; }
+
+  .data-table{ margin-top:28px; border:1px solid var(--line); overflow-x:auto; }
+  table.dt{ width:100%; border-collapse:collapse; font-size:13px; font-family:ui-monospace, monospace; min-width:600px; }
+  table.dt th, table.dt td{
+    padding:10px 14px; text-align:left; border-bottom:1px solid var(--line);
+    color:var(--ink-dim); white-space:nowrap;
+  }
+  table.dt th{ color:var(--ink-faint); font-weight:400; text-transform:uppercase; font-size:11px; background:var(--panel); }
+  table.dt td.city{ color:var(--ink); font-family:-apple-system, sans-serif; }
+  table.dt tr:last-child td{ border-bottom:none; }
+  .score-pill{ display:inline-block; padding:2px 8px; font-weight:700; color:#0f1b2d; }
+
+  .data-note{
+    margin-top:20px; display:flex; gap:14px; align-items:flex-start;
+    max-width:620px; color:var(--ink-dim); font-size:14px;
+  }
+  .data-note .mark{
+    flex:none; width:20px; height:20px; border:1.5px solid var(--gold); color:var(--gold);
+    font-family:ui-monospace, monospace; font-size:11px;
+    display:flex; align-items:center; justify-content:center; margin-top:2px;
+  }
+
+  .pipeline{ margin-top:36px; border:1px solid var(--line); padding:32px 26px; background:var(--panel); }
+  .pipe-row{ display:flex; align-items:center; flex-wrap:wrap; }
+  .pipe-box{ border:1px solid var(--ink-faint); background:var(--bg); padding:14px 16px; min-width:140px; }
+  .pipe-box.accent{ border-color:var(--gold); border-width:1.5px; }
+  .pipe-box .pb-label{ font-family:ui-monospace, monospace; font-size:10px; color:var(--ink-faint); text-transform:uppercase; }
+  .pipe-box .pb-title{ margin-top:6px; font-size:14px; font-weight:700; }
+  .pipe-box .pb-items{ margin-top:8px; font-size:12px; color:var(--ink-dim); line-height:1.7; }
+  .pipe-arrow{ flex:none; width:38px; height:2px; background:var(--ink-faint); position:relative; margin:0 6px; }
+  .pipe-arrow::after{
+    content:""; position:absolute; right:0; top:50%; width:7px; height:7px;
+    border-top:2px solid var(--ink-faint); border-right:2px solid var(--ink-faint);
+    transform:translateY(-50%) rotate(45deg);
+  }
+  @media (max-width:760px){
+    .pipe-row{ flex-direction:column; align-items:stretch; }
+    .pipe-arrow{ width:2px; height:26px; margin:2px 0 2px 18px; }
+    .pipe-arrow::after{ right:-3px; top:auto; bottom:0; transform:rotate(135deg); }
+  }
+
+  .output-note{ margin-top:26px; display:flex; gap:24px; flex-wrap:wrap; }
+  .output-item{ flex:1 1 220px; }
+  .output-item .oi-num{ font-family:ui-monospace, monospace; color:var(--gold); font-size:12px; }
+  .output-item h4{ margin:8px 0 0; font-size:15.5px; }
+  .output-item p{ margin:8px 0 0; font-size:13.5px; color:var(--ink-dim); }
+
+  .exam-flow{ margin-top:32px; display:flex; align-items:stretch; gap:0; flex-wrap:wrap; }
+  .exam-col{ flex:1 1 200px; border:1px solid var(--line); padding:18px 18px; background:var(--panel); }
+  .exam-col + .exam-col{ border-left:none; }
+  .exam-col .ec-label{ font-family:ui-monospace, monospace; font-size:11px; color:var(--ink-faint); text-transform:uppercase; }
+  .exam-col h4{ margin-top:8px; font-size:15px; }
+  .exam-col p{ margin-top:8px; font-size:13px; color:var(--ink-dim); }
+  .exam-col.hidden-city{ border-color:var(--l4); }
+  .exam-col.hidden-city .ec-label{ color:var(--l4); }
+  @media (max-width:760px){
+    .exam-col{ flex:1 1 100%; }
+    .exam-col + .exam-col{ border-left:1px solid var(--line); border-top:none; }
+  }
+
+  .limits-list{ margin-top:30px; display:flex; flex-direction:column; gap:1px; background:var(--line); border:1px solid var(--line); }
+  .limit-item{ background:var(--bg); padding:20px 22px; display:flex; gap:16px; }
+  .limit-item .li-mark{
+    flex:none; font-family:ui-monospace, monospace; font-size:12px; color:var(--l3);
+    border:1px solid var(--l3); width:22px; height:22px; display:flex; align-items:center; justify-content:center;
+  }
+  .limit-item h4{ font-size:15px; }
+  .limit-item p{ margin-top:6px; font-size:13.5px; color:var(--ink-dim); }
+
+  .usage-grid{
+    margin-top:34px; display:grid; grid-template-columns:repeat(2, 1fr);
+    gap:1px; background:var(--line); border:1px solid var(--line);
+  }
+  .usage-card{ background:var(--bg); padding:26px 22px; }
+  .usage-icon{ font-size:22px; line-height:1; }
+  .usage-card h3{ margin-top:14px; font-size:16px; text-transform:uppercase; }
+  .usage-card p{ margin-top:10px; font-size:13.5px; color:var(--ink-dim); }
+  @media (max-width:760px){ .usage-grid{ grid-template-columns:1fr; } }
+
+  footer{
+    padding:50px 0 54px; border-top:1px solid var(--line);
+    display:flex; justify-content:space-between; align-items:center;
+    color:var(--ink-faint); font-size:13px;
+  }
+  footer .fmark{ font-family:"Arial Narrow", sans-serif; font-weight:800; color:var(--ink-dim); }
+
+  ::selection{ background:var(--gold); color:#0f1b2d; }
+  :focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+</style>
+</head>
+<body>
+
+<svg class="bg-decor" viewBox="0 0 900 1400" preserveAspectRatio="xMidYMid slice" aria-hidden="true"
+  style="position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:0.05;">
+  <!-- scattered stars -->
+  <g fill="#c9a15a">
+    <path d="M120 80 l4 10 10 1 -8 7 3 10 -9 -6 -9 6 3 -10 -8 -7 10 -1z"/>
+    <path d="M760 140 l4 10 10 1 -8 7 3 10 -9 -6 -9 6 3 -10 -8 -7 10 -1z"/>
+    <path d="M820 340 l4 10 10 1 -8 7 3 10 -9 -6 -9 6 3 -10 -8 -7 10 -1z"/>
+    <path d="M60 620 l4 10 10 1 -8 7 3 10 -9 -6 -9 6 3 -10 -8 -7 10 -1z"/>
+    <path d="M700 900 l4 10 10 1 -8 7 3 10 -9 -6 -9 6 3 -10 -8 -7 10 -1z"/>
+  </g>
+  <!-- statue of liberty, simplified line silhouette -->
+  <g transform="translate(560,520)" stroke="#c9a15a" stroke-width="3" fill="none" stroke-linejoin="round">
+    <path d="M0 480 L0 260 M-70 480 L70 480 M-40 480 L-40 300 L40 300 L40 480
+             M-20 300 L-20 100 L20 100 L20 300
+             M0 100 L0 20
+             M0 20 L-14 40 M0 20 L14 40 M0 20 L-20 8 M0 20 L20 8
+             M0 20 L-10 -6 M0 20 L10 -6 M0 20 L0 -14 M0 20 L-24 22 M0 20 L24 22
+             M-20 130 L-55 95 M20 130 L60 150
+             M-20 200 Q -55 220 -55 260" />
+  </g>
+</svg>
+
+<header class="top">
+  <div class="wordmark">🧭 여행 안전도 프로젝트</div>
+  <div class="badge">USA · TRAVEL DATA</div>
+</header>
+
+<div class="flag-ribbon" aria-hidden="true"></div>
+
+<main class="wrap" style="position:relative; z-index:1;">
+
+  <section class="hero" style="border:none; padding-top:16px;">
+    <div class="hero-title">여행 안전도<br>예측</div>
+    <p class="hero-sub">
+      낯선 도시의 어느 동네, 밤에 다녀도 될까 — 감이 아니라
+      범죄 기록과 방문객들의 리뷰로 답한다.
+    </p>
+
+    <div class="advisory">
+      <div class="advisory-head">
+        <span class="seal">Travel Advisory</span>
+        <span class="seal">Model Notice</span>
+      </div>
+      <div class="advisory-body">
+        <div class="advisory-row"><span class="label">대상</span><span class="value">미국 "동네" 단위<br>(도시 전체 아님)</span></div>
+        <div class="advisory-row"><span class="label">모델</span><span class="value">Transformer</span></div>
+        <div class="advisory-row"><span class="label">데이터</span><span class="value">범죄기록 + 리뷰 텍스트</span></div>
+        <div class="advisory-row"><span class="label">출력</span><span class="value">안전도 0–100점</span></div>
+        <div class="level-bar">
+          <span style="background:var(--l1)">LV.1</span>
+          <span style="background:var(--l2)">LV.2</span>
+          <span style="background:var(--l3)">LV.3</span>
+          <span style="background:var(--l4)">LV.4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="why-box" style="margin-top:30px;">
+      <div class="why-label">💡 쉽게 말하면</div>
+      <p>
+        "시애틀 안전해요?"가 아니라 <strong style="color:var(--ink)">"시애틀 중에서 이 동네
+        안전해요?"</strong>를 묻는 모델이다. 같은 도시 안에서도 동네마다 분위기가
+        완전히 다르기 때문에, 도시 전체가 아니라 동네 하나하나를 따로 본다.
+      </p>
+    </div>
+  </section>
+
+  <!-- 01 -->
+  <section id="what">
+    <div class="sec-watermark">01</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">01 / 정의</div>
+        <h2 class="sec-title">뭘 하는 프로젝트인가</h2>
+      </div>
+      <p class="lede">
+        해외여행 준비할 때 "이 동네 밤에 다녀도 되나?"는 다들 검색해보지만,
+        커뮤니티 후기 몇 개 뒤적이는 게 전부다.
+      </p>
+      <p class="body-col">
+        이 프로젝트는 한 지역의 <strong>범죄 통계</strong>와 <strong>방문객들이 남긴 리뷰 텍스트</strong>를
+        함께 넣어서, 그 지역의 여행객 대상 안전도를 0~100점으로 점수화한다.
+        낯선 동네에 대한 막연한 감을, 실제 기록과 방문 후기로 대체해보는 시도다.
+      </p>
+
+      <div class="why-box">
+        <div class="why-label">🧭 왜 이 프로젝트인가</div>
+        <p>
+          범죄 통계는 숫자로 존재하지만, 정작 여행객이 느끼는 "위험하다"는
+          감각은 통계만으로는 안 잡힌다. 통계상 범죄율은 낮은데 후기에는
+          "무서웠다"는 말이 반복되는 동네가 있다면, 그 괴리 자체가 진짜
+          궁금했던 지점이다.
+        </p>
+        <p>
+          그래서 숫자(범죄 기록)와 말(리뷰)을 같이 보는 모델을 만들어보고
+          싶었다. 게다가 이건 특정 도시 하나에서만 통하면 의미가 없는
+          문제라 — 한 번도 본 적 없는 도시에서도 통하는지까지 검증하는 게
+          이 프로젝트의 핵심 목표다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="why-dl">
+    <div class="sec-watermark">02</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">02 / 근거</div>
+        <h2 class="sec-title">왜 딥러닝인가</h2>
+      </div>
+      <p class="lede">
+        "위험하다"는 감각은 숫자 몇 개가 아니라
+        <strong>문장 속 뉘앙스</strong>에 있다.
+      </p>
+
+      <div class="reasons">
+        <div class="reason">
+          <div class="rk">REASON 01</div>
+          <h3>말투가 신호다</h3>
+          <p>
+            "밤엔 좀 무서웠어요"와 "밤에도 사람 많아 괜찮았어요"는
+            비슷한 단어를 써도 정반대 의미다. 문맥 전체를 읽어야
+            구분되는 정보라 Transformer가 필요하다.
+          </p>
+        </div>
+        <div class="reason">
+          <div class="rk">REASON 02</div>
+          <h3>지역은 서로 연결돼 있다</h3>
+          <p>
+            한 동네가 위험하면 바로 옆 동네도 영향을 받는 경향이 있다.
+            지역들을 서로 연결된 관계로 놓고 보면, 이웃한 동네의
+            맥락까지 반영한 점수를 만들 수 있다.
+          </p>
+        </div>
+        <div class="reason">
+          <div class="rk">REASON 03</div>
+          <h3>새 도시에도 통해야 한다</h3>
+          <p>
+            특정 도시에서만 되는 모델은 반쪽짜리다. 한 번도 학습하지
+            않은 도시에서도 어느 정도 맞아야 진짜 쓸모가 있는데, 이건
+            사전학습된 언어모델을 전이했을 때 특히 유리해지는 부분이다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="data">
+    <div class="sec-watermark">03</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">03 / 데이터</div>
+        <h2 class="sec-title">어떤 데이터를, 어디까지</h2>
+      </div>
+      <p class="lede">
+        범죄 데이터를 <strong>규모용</strong>과 <strong>정밀도용</strong> 두 겹으로 나눠 쓴다.
+      </p>
+      <p class="body-col" style="margin-top:0;">
+        쉽게 말하면 — 넓게 훑는 데이터 하나, 자세히 보는 데이터 하나,
+        이렇게 두 개를 같이 쓴다는 뜻이다.
+      </p>
+
+      <div class="scope-box">
+        <div class="scope-head">
+          <span>Layer 1 · 전국 단위 — 규모</span>
+          <span>미국 전역</span>
+        </div>
+        <p style="margin:0 0 14px; font-size:14px; color:var(--ink-dim);">
+          미국 연방 차원에서 운영되는 전국 범죄 통계. 1만 3천여 개
+          법집행기관, 연간 1,100만 건 이상, 대도시뿐 아니라 중소도시까지
+          포함된다. 데이터 규모 자체를 이걸로 확보한다.
+        </p>
+        <div class="city-chips">
+          <span class="city-chip train"><span class="dot"></span>미국 50개 주 전역</span>
+          <span class="city-chip train"><span class="dot"></span>1.3만+ 법집행기관</span>
+          <span class="city-chip excluded">위치 정밀도는 기관마다 다름</span>
+        </div>
+      </div>
+
+      <div class="scope-box" style="margin-top:16px;">
+        <div class="scope-head">
+          <span>Layer 2 · 도시 단위 — 정밀도</span>
+          <span>18개 학습 + 확장분</span>
+        </div>
+        <p style="margin:0 0 14px; font-size:14px; color:var(--ink-dim);">
+          여러 도시의 범죄 데이터를 좌표 단위까지 표준화해 합쳐놓은
+          연구용 데이터. 여기에 더해, 아직 합쳐지지 않은 대도시들의
+          공개 데이터를 직접 같은 형식으로 통합해 범위를 넓힌다 —
+          이 통합 작업 자체가 전처리 단계의 핵심이다.
+        </p>
+        <div class="city-chips">
+          <span class="city-chip train"><span class="dot"></span>뉴욕</span>
+          <span class="city-chip train"><span class="dot"></span>시카고</span>
+          <span class="city-chip train"><span class="dot"></span>보스턴</span>
+          <span class="city-chip train"><span class="dot"></span>오스틴</span>
+          <span class="city-chip train"><span class="dot"></span>디트로이트</span>
+          <span class="city-chip train"><span class="dot"></span>포트워스</span>
+          <span class="city-chip train"><span class="dot"></span>캔자스시티</span>
+          <span class="city-chip train"><span class="dot"></span>루이빌</span>
+          <span class="city-chip train"><span class="dot"></span>멤피스</span>
+          <span class="city-chip train"><span class="dot"></span>내슈빌</span>
+          <span class="city-chip train"><span class="dot"></span>세인트루이스</span>
+          <span class="city-chip train"><span class="dot"></span>시애틀</span>
+          <span class="city-chip train"><span class="dot"></span>덴버</span>
+          <span class="city-chip train"><span class="dot"></span>샌프란시스코</span>
+          <span class="city-chip train"><span class="dot"></span>투손</span>
+          <span class="city-chip train"><span class="dot"></span>메사</span>
+          <span class="city-chip train"><span class="dot"></span>버지니아비치</span>
+          <span class="city-chip added"><span class="dot"></span>+ 필라델피아 (직접 통합)</span>
+          <span class="city-chip added"><span class="dot"></span>+ 볼티모어 (직접 통합)</span>
+          <span class="city-chip added"><span class="dot"></span>+ 워싱턴DC (직접 통합)</span>
+          <span class="city-chip added"><span class="dot"></span>+ 그 외 확장 도시</span>
+          <span class="city-chip test"><span class="dot"></span>LA — 테스트 전용</span>
+        </div>
+      </div>
+
+      <p class="body-col">
+        여기에 각 지역 관련 리뷰 텍스트(Yelp 등)를 결합한다. 아래는 실제
+        데이터의 구조를 보여주기 위해 만든 예시다 (가상의 지역명).
+      </p>
+
+      <div class="data-table">
+        <table class="dt">
+          <thead>
+            <tr><th>지역</th><th>최근 범죄건수</th><th>야간범죄비율</th><th>리뷰 예시</th><th>안전도</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="city">뉴욕 · 지역 A</td><td>12건</td><td>20%</td>
+              <td>"저녁에도 사람 많고 괜찮았어요"</td>
+              <td><span class="score-pill" style="background:var(--l1)">78</span></td>
+            </tr>
+            <tr>
+              <td class="city">뉴욕 · 지역 B</td><td>45건</td><td>60%</td>
+              <td>"밤엔 좀 무서웠어요"</td>
+              <td><span class="score-pill" style="background:var(--l3)">32</span></td>
+            </tr>
+            <tr>
+              <td class="city">시카고 · 지역 C</td><td>8건</td><td>15%</td>
+              <td>"관광객 많아서 안전한 느낌"</td>
+              <td><span class="score-pill" style="background:var(--l1)">81</span></td>
+            </tr>
+            <tr>
+              <td class="city">시카고 · 지역 D</td><td>50건</td><td>55%</td>
+              <td>"혼자 가긴 애매했어요"</td>
+              <td><span class="score-pill" style="background:var(--l4)">28</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="data-note">
+        <span class="mark">i</span>
+        <p style="margin:0;">
+          도시마다 범죄 유형 이름, 날짜 형식, 좌표 표기 방식이 다 달라서
+          하나로 합치는 전처리 자체가 이 프로젝트의 큰 작업 중 하나다.
+          LA 데이터는 같은 구조로 존재하지만, 학습에는 쓰지 않고
+          검증(05번 참고)에만 따로 남겨둔다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section id="pipeline">
+    <div class="sec-watermark">04</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">04 / 구조</div>
+        <h2 class="sec-title">입력과 출력</h2>
+      </div>
+      <p class="lede">
+        범죄 기록과 리뷰 텍스트를 넣으면, <strong>점수 하나</strong>가 나온다.
+      </p>
+
+      <div class="pipeline">
+        <div class="pipe-row">
+          <div class="pipe-box">
+            <div class="pb-label">Input · 정형</div>
+            <div class="pb-title">범죄 통계</div>
+            <div class="pb-items">건수 · 유형 · 시간대<br>· 야간비율</div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-box accent">
+            <div class="pb-label">Input · 텍스트</div>
+            <div class="pb-title">지역 리뷰</div>
+            <div class="pb-items">"밤엔 좀…" 같은<br>방문객 후기 문장들</div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-box">
+            <div class="pb-label">Encoder</div>
+            <div class="pb-title">통합 인코더</div>
+            <div class="pb-items">숫자 정보 + 텍스트 정보를<br>하나로 결합</div>
+          </div>
+          <div class="pipe-arrow"></div>
+          <div class="pipe-box accent">
+            <div class="pb-label">Output</div>
+            <div class="pb-title">안전도 점수</div>
+            <div class="pb-items">0 ~ 100점<br>+ 레벨 1~4</div>
+          </div>
+        </div>
+
+        <div class="output-note">
+          <div class="output-item">
+            <div class="oi-num">핵심 출력</div>
+            <h4>안전도 점수 (0~100)</h4>
+            <p>지역 하나당 점수 하나. 레벨(1~4)로 환산해 여행 권고문처럼 표시한다.</p>
+          </div>
+          <div class="output-item">
+            <div class="oi-num">부가 정보</div>
+            <h4>점수에 기여한 리뷰 문장</h4>
+            <p>어떤 문장이 점수를 낮췄는지 함께 보여주면, 근거까지 설명 가능해진다.</p>
+          </div>
+        </div>
+
+        <div class="why-box" style="margin-top:30px; border-left-color:var(--l1);">
+          <div class="why-label" style="color:var(--l1);">🔮 다 만들고 나면, 실제로 뭘 하나</div>
+          <p>
+            학습·검증이 다 끝난 뒤 이 모델이 하는 일은 하나다 —
+            <strong style="color:var(--ink)">사용자가 궁금해하는 아무 동네나 넣으면, 그 자리에서
+            안전도 점수를 즉시 계산</strong>해주는 것. 번역기랑 비슷하다. 번역기도
+            학습할 땐 정해진 문장으로 훈련하지만, 실제로 쓸 땐 사용자가 그
+            자리에서 입력하는 아무 문장이나 번역해준다. 이 모델도 학습 때
+            안 써본 동네라도, 범죄기록과 리뷰만 있으면 바로 점수를 뽑아낸다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="generalization">
+    <div class="sec-watermark">05</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">05 / 검증</div>
+        <h2 class="sec-title">본 적 없는 도시에도 통하는가</h2>
+      </div>
+      <p class="lede">
+        <strong>모의고사로 공부하고, 한 번도 안 푼 새 문제집으로 실력을 테스트</strong>하는 것과 같다.
+      </p>
+      <p class="body-col">
+        03번에서 나눈 두 겹의 데이터 구조가 그대로 검증 설계로 이어진다.
+        Layer 2에 있는 도시들 중 LA는 학습 과정에서 아예 빼놓고, 학습이
+        끝난 뒤에야 처음으로 보여준다.
+      </p>
+
+      <div class="exam-flow">
+        <div class="exam-col">
+          <div class="ec-label">Step 1 · 학습</div>
+          <h4>LA를 제외한 도시 전체</h4>
+          <p>정답(안전도 점수)까지 다 보여주며 패턴을 학습시킨다.</p>
+        </div>
+        <div class="exam-col hidden-city">
+          <div class="ec-label">Step 2 · 실전 테스트</div>
+          <h4>LA — 정답은 가려둠</h4>
+          <p>범죄 기록과 리뷰만 주고, 안전도 점수를 예측하게 한다.</p>
+        </div>
+        <div class="exam-col">
+          <div class="ec-label">Step 3 · 채점</div>
+          <h4>가려뒀던 정답 공개</h4>
+          <p>모델의 예측값과 실제 LA 점수를 비교해 얼마나 맞았는지 확인한다.</p>
+        </div>
+      </div>
+
+      <div class="data-table" style="margin-top:24px;">
+        <table class="dt">
+          <thead>
+            <tr><th>LA 지역</th><th>실제 안전도(가려둠)</th><th>모델 예측값</th><th>차이</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="city">LA · 할리우드</td>
+              <td><span class="score-pill" style="background:var(--l1)">68</span></td>
+              <td><span class="score-pill" style="background:var(--l1)">71</span></td>
+              <td>3점</td>
+            </tr>
+            <tr>
+              <td class="city">LA · 스키드로우 인근</td>
+              <td><span class="score-pill" style="background:var(--l4)">19</span></td>
+              <td><span class="score-pill" style="background:var(--l4)">22</span></td>
+              <td>3점</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="body-col">
+        여러 도시로 학습 범위를 넓힐수록 이 실험의 설득력도 같이 커진다.
+        도시 하나로 학습한 모델보다, 형식이 제각각인 여러 도시 데이터를
+        직접 통합해 학습한 모델이 새 도시에 더 안정적으로 통할 가능성이
+        높다 — 03번의 전처리 작업이 결국 이 검증 결과로 이어지는 구조다.
+      </p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section id="usage">
+    <div class="sec-watermark">06</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">06 / 활용</div>
+        <h2 class="sec-title">이 점수, 어디에 쓰나</h2>
+      </div>
+      <p class="lede">
+        지역 하나에 점수가 매겨지는 순간, 여러 자리에서 쓸모가 생긴다.
+      </p>
+
+      <div class="usage-grid">
+        <div class="usage-card">
+          <div class="usage-icon">🗺️</div>
+          <h3>여행 플랫폼 안전 지도</h3>
+          <p>숙소 검색 결과에 지역 안전도를 같이 보여주는 기능으로 확장 가능.</p>
+        </div>
+        <div class="usage-card">
+          <div class="usage-icon">🏨</div>
+          <h3>숙소 예약 보조</h3>
+          <p>"이 숙소 동네, 밤에 다녀도 될까?"를 예약 전에 바로 확인.</p>
+        </div>
+        <div class="usage-card">
+          <div class="usage-icon">🎒</div>
+          <h3>배낭여행·혼자 여행족</h3>
+          <p>낯선 도시에서 동선을 짤 때, 피해야 할 지역을 미리 참고.</p>
+        </div>
+        <div class="usage-card">
+          <div class="usage-icon">🏙️</div>
+          <h3>지자체 관광 정책</h3>
+          <p>관광객이 실제로 위험하게 느끼는 지역을 파악해 순찰·조명 등 개선 우선순위 참고.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="limits">
+    <div class="sec-watermark">07</div>
+    <div class="wrap" style="padding:0;">
+      <div class="sec-head">
+        <div class="sec-num">07 / 한계</div>
+        <h2 class="sec-title">솔직히 짚어야 할 것들</h2>
+      </div>
+      <p class="lede">
+        이 프로젝트는 완성된 서비스가 아니라, <strong>가능성을 확인하는 실험</strong>이다.
+      </p>
+
+      <div class="limits-list">
+        <div class="limit-item">
+          <div class="li-mark">!</div>
+          <div>
+            <h4>미국 밖은 다루지 못한다</h4>
+            <p>
+              전국 단위 데이터 덕분에 미국 안에서는 넓게 커버하지만,
+              이건 어디까지나 "미국 안에서"의 이야기다. 동남아, 남미 등
+              실제로 안전 정보가 더 절실한 여행지는 이번 스코프에
+              아예 포함되지 않는다.
+            </p>
+          </div>
+        </div>
+        <div class="limit-item">
+          <div class="li-mark">!</div>
+          <div>
+            <h4>규모와 정밀도를 맞바꿨다</h4>
+            <p>
+              전국 단위 데이터는 규모는 크지만 기관마다 위치 정보의
+              정밀도가 다르다. 동네 단위로 세밀하게 보려면 결국
+              도시 단위 데이터로 범위를 좁혀야 하는, 규모와 정밀도
+              사이의 트레이드오프가 이 프로젝트 내내 따라다닌다.
+            </p>
+          </div>
+        </div>
+        <div class="limit-item">
+          <div class="li-mark">!</div>
+          <div>
+            <h4>도시마다 형식이 달라 통합 과정에 오차가 낄 수 있다</h4>
+            <p>
+              범죄 유형 분류 체계, 좌표 표기, 기록 주기가 도시마다 제각각이라
+              하나로 합치는 과정에서 완벽히 통일되지 않는 부분이 남는다.
+              특히 직접 새로 통합하는 도시일수록 이 오차가 커질 수 있다.
+            </p>
+          </div>
+        </div>
+        <div class="limit-item">
+          <div class="li-mark">!</div>
+          <div>
+            <h4>"안전"이라는 개념 자체가 주관적</h4>
+            <p>
+              모두가 동의하는 절대적인 정답 점수는 없다. 이 프로젝트의
+              점수는 범죄 통계와 리뷰 뉘앙스를 종합한 하나의 추정치일 뿐,
+              공식 인증된 지표가 아니다.
+            </p>
+          </div>
+        </div>
+        <div class="limit-item">
+          <div class="li-mark">!</div>
+          <div>
+            <h4>LA로 통했다고 다 통하는 건 아니다</h4>
+            <p>
+              LA도 결국 미국 대도시라는 점에서 다른 학습 도시들과 문화적으로
+              비슷하다. 진짜 낯선 문화권(비영어권, 다른 대륙)에도
+              일반화되는지는 이번 실험만으로는 확인할 수 없다.
+            </p>
+          </div>
+        </div>
+        <div class="limit-item">
+          <div class="li-mark">!</div>
+          <div>
+            <h4>리뷰를 남기는 사람 자체가 편향돼 있다</h4>
+            <p>
+              리뷰는 주로 관광객·특정 연령대가 남긴다. 실제 거주민이
+              느끼는 안전과는 다를 수 있고, 리뷰가 적은 지역은
+              점수 신뢰도가 낮아진다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="wrap" style="position:relative; z-index:1;">
+  <div class="fmark">🧭 SAFETY SCORE</div>
+  <div>US Crime & Review Data · Deep Learning Final Project</div>
+</footer>
+
+</body>
+</html>
