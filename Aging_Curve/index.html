@@ -3,821 +3,999 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>에이징 커브</title>
+<title>NBA 에이징 커브 예측</title>
 <style>
-  :root{
-    --bg: #12161c;
-    --bg-panel: #171c24;
-    --ink: #edeef0;
-    --ink-dim: #8d97a3;
-    --ink-faint: #4b525c;
-    --accent: #ff6a2b;
-    --accent-deep: #c74e18;
-    --line: #262d38;
-    --wood: #6e4527;
-  }
+:root {
+  --bg:      #0d1117;
+  --surface: #161b22;
+  --border:  #21262d;
+  --ink:     #e6edf3;
+  --dim:     #7d8590;
+  --faint:   #30363d;
+  --orange:  #f0883e;
+  --blue:    #388bfd;
+  --green:   #3fb950;
+  --red:     #f85149;
+}
 
-  *{ box-sizing:border-box; }
-  html{ scroll-behavior:smooth; }
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
-  body{
-    margin:0;
-    background:var(--bg);
-    color:var(--ink);
-    font-family:-apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
-    line-height:1.65;
-    -webkit-font-smoothing:antialiased;
-  }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
 
-  h1,h2,h3{
-    font-family:"Arial Narrow", "Noto Sans KR", -apple-system, sans-serif;
-    font-weight:800;
-    letter-spacing:-0.01em;
-    margin:0;
-  }
+/* court background */
+.court-bg {
+  position: fixed; inset: 0;
+  pointer-events: none; z-index: 0;
+  opacity: 0.06;
+}
 
-  a{ color:inherit; }
+h1, h2, h3 {
+  font-family: "Arial Black", "Arial Bold", "Noto Sans KR", sans-serif;
+  font-weight: 900; margin: 0; letter-spacing: -0.02em;
+}
 
-  .wrap{
-    max-width:920px;
-    margin:0 auto;
-    padding:0 28px;
-  }
+p { margin: 0; }
 
-  /* ---------- background court texture ---------- */
-  .court-lines{
-    position:fixed;
-    inset:0;
-    z-index:0;
-    pointer-events:none;
-    opacity:0.5;
-  }
+.wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
 
-  /* ---------- nav ---------- */
-  header.top{
-    position:relative;
-    z-index:2;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:26px 28px;
-    max-width:920px;
-    margin:0 auto;
-  }
-  .wordmark{
-    font-family:"Arial Narrow", sans-serif;
-    font-weight:800;
-    font-size:16px;
-    letter-spacing:0.04em;
-    text-transform:uppercase;
-    color:var(--ink-dim);
-  }
-  .wordmark span{ color:var(--accent); }
-  .badge{
-    font-size:12px;
-    color:var(--ink-faint);
-    border:1px solid var(--line);
-    border-radius:100px;
-    padding:5px 12px;
-  }
+/* ── nav ── */
+nav {
+  position: relative; z-index: 10;
+  border-bottom: 1px solid var(--border);
+  padding: 18px 24px;
+  max-width: 860px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.nav-logo { font-size: 14px; font-weight: 700; color: var(--dim); letter-spacing: 0.05em; }
+.nav-logo span { color: var(--orange); }
+.nav-tag {
+  font-size: 11px; color: var(--dim);
+  border: 1px solid var(--border); padding: 4px 10px;
+}
 
-  /* ---------- hero ---------- */
-  .hero{
-    position:relative;
-    z-index:2;
-    padding:64px 0 40px;
-  }
-  .hero-eyebrow{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    color:var(--ink-dim);
-    font-size:14px;
-    margin-bottom:22px;
-  }
-  .hero-eyebrow .dot{
-    width:8px; height:8px; border-radius:50%;
-    background:var(--accent);
-    flex:none;
-  }
-  .hero h1{
-    font-size:clamp(56px, 11vw, 108px);
-    line-height:0.92;
-    text-transform:uppercase;
-    color:var(--ink);
-  }
-  .hero h1 .curve-letter{
-    color:var(--accent);
-  }
-  .hero-sub{
-    max-width:520px;
-    margin-top:22px;
-    font-size:17px;
-    color:var(--ink-dim);
-  }
+/* ── hero ── */
+.hero {
+  position: relative; z-index: 1;
+  padding: 72px 0 56px;
+}
+.hero-eyebrow {
+  font-size: 12px; color: var(--orange);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-eyebrow::before {
+  content: ""; width: 24px; height: 1px; background: var(--orange);
+}
+.hero h1 {
+  font-size: clamp(52px, 10vw, 96px);
+  line-height: 0.95;
+  color: var(--ink);
+}
+.hero h1 em { font-style: normal; color: var(--orange); }
+.hero-desc {
+  margin-top: 24px;
+  max-width: 480px;
+  color: var(--dim);
+  font-size: 17px;
+}
 
-  /* aging curve svg */
-  .curve-hero{
-    margin-top:44px;
-    border-top:1px solid var(--line);
-    padding-top:28px;
-  }
-  .curve-hero svg{ width:100%; height:auto; display:block; }
-  .curve-hero .path-line{
-    fill:none;
-    stroke:var(--accent);
-    stroke-width:3;
-    stroke-linecap:round;
-    stroke-dasharray:900;
-    stroke-dashoffset:900;
-    animation:draw 1.8s ease-out forwards 0.3s;
-  }
-  .curve-hero .grid-line{
-    stroke:var(--line);
-    stroke-width:1;
-  }
-  .curve-hero .axis-label{
-    fill:var(--ink-faint);
-    font-size:12px;
-    font-family:ui-monospace, "SFMono-Regular", Menlo, monospace;
-  }
-  @keyframes draw{
-    to{ stroke-dashoffset:0; }
-  }
-  @media (prefers-reduced-motion: reduce){
-    .curve-hero .path-line{ animation:none; stroke-dashoffset:0; }
-  }
+/* stat strip */
+.stat-strip {
+  margin-top: 48px;
+  display: flex; gap: 0;
+  border: 1px solid var(--border);
+}
+.stat-item {
+  flex: 1; padding: 20px 22px;
+  border-right: 1px solid var(--border);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-family: "Arial Black", sans-serif;
+  font-size: 28px; font-weight: 900; color: var(--orange);
+  line-height: 1;
+}
+.stat-label { margin-top: 6px; font-size: 13px; color: var(--dim); }
 
-  /* ---------- sections ---------- */
-  section{
-    position:relative;
-    z-index:2;
-    padding:96px 0;
-    border-top:1px solid var(--line);
-  }
-  .sec-head{
-    position:relative;
-    display:flex;
-    gap:20px;
-    align-items:baseline;
-    margin-bottom:36px;
-  }
-  .sec-num{
-    font-family:ui-monospace, "SFMono-Regular", Menlo, monospace;
-    font-size:15px;
-    color:var(--accent);
-    flex:none;
-    padding-top:4px;
-  }
-  .sec-title{
-    font-size:clamp(28px, 4.5vw, 40px);
-    text-transform:uppercase;
-  }
-  .sec-watermark{
-    position:absolute;
-    right:0;
-    top:-40px;
-    font-family:"Arial Narrow", sans-serif;
-    font-weight:800;
-    font-size:120px;
-    color:var(--bg-panel);
-    z-index:-1;
-    user-select:none;
-    line-height:1;
-  }
+/* ── section base ── */
+section {
+  position: relative; z-index: 1;
+  padding: 80px 0;
+  border-top: 1px solid var(--border);
+}
 
-  .lede{
-    max-width:640px;
-    font-size:18px;
-    color:var(--ink-dim);
-  }
-  .lede strong{ color:var(--ink); font-weight:700; }
+.sec-label {
+  font-size: 11px; color: var(--orange);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.sec-title {
+  font-size: clamp(26px, 4vw, 38px);
+  color: var(--ink); margin-bottom: 20px;
+}
+.body-text {
+  max-width: 600px; color: var(--dim); font-size: 15.5px;
+}
+.body-text + .body-text { margin-top: 12px; }
+.body-text strong { color: var(--ink); font-weight: 600; }
 
-  .body-col{
-    max-width:640px;
-    margin-top:18px;
-    color:var(--ink-dim);
-    font-size:16px;
-  }
+/* callout */
+.callout {
+  margin-top: 28px;
+  border-left: 3px solid var(--orange);
+  padding: 4px 0 4px 20px;
+  max-width: 580px;
+}
+.callout p { font-size: 14.5px; color: var(--dim); }
+.callout p + p { margin-top: 8px; }
+.callout strong { color: var(--ink); }
 
-  .why-box{
-    margin-top:32px;
-    border-left:2px solid var(--accent);
-    padding:6px 0 6px 24px;
-    max-width:600px;
-  }
-  .why-label{
-    font-family:ui-monospace, monospace;
-    font-size:13px;
-    color:var(--accent);
-    text-transform:uppercase;
-    letter-spacing:0.02em;
-    margin-bottom:12px;
-  }
-  .why-box p{
-    color:var(--ink-dim);
-    font-size:15.5px;
-    margin:10px 0 0;
-  }
-  .why-box p:first-of-type{ margin-top:0; }
+/* ── "왜 딥러닝" 비교 카드 ── */
+.dl-compare {
+  margin-top: 36px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+.dl-col { background: var(--bg); padding: 26px 22px; }
+.dl-col-label {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 14px; font-weight: 700;
+}
+.dl-col.old .dl-col-label { color: var(--dim); }
+.dl-col.new .dl-col-label { color: var(--orange); }
+.dl-col h3 { font-size: 17px; margin-bottom: 12px; }
+.dl-point {
+  display: flex; gap: 10px; align-items: flex-start;
+  margin-top: 10px; font-size: 14px; color: var(--dim);
+}
+.dl-point .icon { flex: none; margin-top: 2px; }
+.dl-col.old .dl-point .icon { color: var(--red); }
+.dl-col.new .dl-point .icon { color: var(--green); }
+@media (max-width: 640px) { .dl-compare { grid-template-columns: 1fr; } }
 
-  /* ---------- reason cards (why DL) ---------- */
-  .reasons{
-    margin-top:40px;
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:1px;
-    background:var(--line);
-    border:1px solid var(--line);
-  }
-  .reason{
-    background:var(--bg);
-    padding:28px 24px;
-  }
-  .reason .rk{
-    font-family:ui-monospace, monospace;
-    font-size:13px;
-    color:var(--ink-faint);
-  }
-  .reason h3{
-    margin-top:14px;
-    font-size:19px;
-    text-transform:uppercase;
-    color:var(--ink);
-  }
-  .reason p{
-    margin-top:10px;
-    font-size:14.5px;
-    color:var(--ink-dim);
-  }
+/* ── 프로젝트 진행 흐름 ── */
+.flow {
+  margin-top: 36px;
+  display: flex; flex-direction: column; gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+.flow-step { background: var(--bg); padding: 22px 22px; display: flex; gap: 20px; }
+.flow-num {
+  flex: none; width: 32px; height: 32px;
+  border: 1.5px solid var(--orange); color: var(--orange);
+  font-family: "Arial Black", sans-serif; font-size: 13px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 2px;
+}
+.flow-step h4 { font-size: 15px; margin-bottom: 6px; }
+.flow-step p { font-size: 14px; color: var(--dim); }
 
-  /* multi-curve illustration inside reason 3 */
-  .mini-curves{ margin-top:16px; }
-  .mini-curves svg{ width:100%; height:auto; display:block; }
-  .mini-curves path{
-    fill:none;
-    stroke-width:2;
-  }
+/* ── 데이터 예시 테이블 ── */
+.data-table { margin-top: 28px; overflow-x: auto; border: 1px solid var(--border); }
+table.dt {
+  width: 100%; border-collapse: collapse;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 13px; min-width: 540px;
+}
+table.dt th, table.dt td {
+  padding: 10px 14px; text-align: right;
+  border-bottom: 1px solid var(--border); color: var(--dim);
+  white-space: nowrap;
+}
+table.dt th:first-child, table.dt td:first-child { text-align: left; }
+table.dt th { color: var(--faint); font-size: 11px; background: var(--surface); }
+table.dt td.game-id { color: var(--ink); }
+table.dt tr:last-child td { border-bottom: none; }
 
-  @media (max-width:760px){
-    .reasons{ grid-template-columns:1fr; }
-  }
+/* ── 모델 파이프라인 ── */
+.pipeline {
+  margin-top: 32px;
+}
+.pipe-flow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  position: relative;
+}
+.pipe-card {
+  position: relative;
+  padding: 24px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-right: none;
+  text-align: center;
+}
+.pipe-card:last-child { border-right: 1px solid var(--border); }
+.pipe-card.hi {
+  background: #1a1f2e;
+  border-color: var(--orange);
+  border-right: none;
+  z-index: 1;
+}
+.pipe-card.hi + .pipe-card { border-left: 1px solid var(--orange); }
+.pipe-card .pc-step {
+  display: inline-block;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--faint);
+  color: var(--dim);
+  font-family: "Arial Black", sans-serif;
+  font-size: 11px; font-weight: 900;
+  line-height: 24px;
+  margin-bottom: 14px;
+}
+.pipe-card.hi .pc-step { background: var(--orange); color: #0d1117; }
+.pipe-card .pc-icon {
+  font-size: 22px; margin-bottom: 10px; display: block;
+}
+.pipe-card .pc-name {
+  font-family: "Arial Black", sans-serif;
+  font-size: 13px; font-weight: 900;
+  color: var(--ink); letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+.pipe-card.hi .pc-name { color: var(--orange); }
+.pipe-card .pc-sub {
+  font-size: 12px; color: var(--dim); line-height: 1.7;
+}
+/* connector arrow between cards */
+.pipe-card::after {
+  content: "›";
+  position: absolute;
+  right: -12px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px; color: var(--dim);
+  z-index: 2; background: var(--bg);
+  width: 24px; text-align: center;
+  line-height: 1;
+}
+.pipe-card:last-child::after { display: none; }
+.pipe-card.hi::after { color: var(--orange); }
+@media (max-width: 640px) {
+  .pipe-flow { grid-template-columns: 1fr 1fr; }
+  .pipe-card { border-right: 1px solid var(--border); border-bottom: none; }
+  .pipe-card:nth-child(2) { border-right: none; }
+  .pipe-card:nth-child(3) { border-top: none; }
+  .pipe-card:last-child { border-top: none; }
+  .pipe-card::after { display: none; }
+}
 
-  /* ---------- usage grid ---------- */
-  .usage-grid{
-    margin-top:40px;
-    display:grid;
-    grid-template-columns:repeat(2, 1fr);
-    gap:1px;
-    background:var(--line);
-    border:1px solid var(--line);
-  }
-  .usage-card{
-    background:var(--bg);
-    padding:30px 26px;
-  }
-  .usage-icon{
-    font-size:26px;
-    line-height:1;
-  }
-  .usage-card h3{
-    margin-top:16px;
-    font-size:18px;
-    text-transform:uppercase;
-    color:var(--ink);
-  }
-  .usage-card p{
-    margin-top:10px;
-    font-size:14.5px;
-    color:var(--ink-dim);
-  }
-  @media (max-width:760px){
-    .usage-grid{ grid-template-columns:1fr; }
-  }
+/* ── 출력 예시 곡선 ── */
+.curve-box {
+  margin-top: 28px;
+  border: 1px solid var(--border);
+  padding: 24px 20px;
+  background: var(--surface);
+}
+.curve-box svg { width: 100%; height: auto; display: block; }
+.curve-box .cg-label { fill: var(--dim); font-size: 12px; }
+.curve-box .cg-accent { fill: var(--orange); font-size: 12px; }
+.curve-box .path-real { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+.curve-box .path-pred { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-linecap: round; stroke-dasharray: 6 5; }
+.curve-box .grid { stroke: var(--faint); stroke-width: 1; }
 
-  /* ---------- data section : box-score style ---------- */
-  .boxscore{
-    margin-top:36px;
-    border:1px solid var(--line);
-    background:var(--bg-panel);
-  }
-  .boxscore-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:16px 20px;
-    border-bottom:1px solid var(--line);
-  }
-  .boxscore-head .tag{
-    font-family:ui-monospace, monospace;
-    font-size:12px;
-    color:var(--accent);
-    text-transform:uppercase;
-    letter-spacing:0.04em;
-  }
-  .boxscore-head .tag2{
-    font-family:ui-monospace, monospace;
-    font-size:12px;
-    color:var(--ink-faint);
-  }
-  table.stat-table{
-    width:100%;
-    border-collapse:collapse;
-    font-family:ui-monospace, "SFMono-Regular", Menlo, monospace;
-    font-size:13px;
-  }
-  table.stat-table th, table.stat-table td{
-    padding:11px 16px;
-    text-align:right;
-    border-bottom:1px solid var(--line);
-    color:var(--ink-dim);
-    white-space:nowrap;
-  }
-  table.stat-table th:first-child, table.stat-table td:first-child{
-    text-align:left;
-    color:var(--ink);
-  }
-  table.stat-table th{
-    color:var(--ink-faint);
-    font-weight:400;
-    text-transform:uppercase;
-    font-size:11px;
-    letter-spacing:0.04em;
-  }
-  table.stat-table tr:last-child td{ border-bottom:none; }
-  table.stat-table td.ellipsis{ color:var(--ink-faint); text-align:center; }
+.curve-legend {
+  display: flex; gap: 20px; margin-top: 16px;
+}
+.curve-legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--dim); }
+.curve-legend-item .swatch { width: 24px; height: 2.5px; }
+.curve-legend-item.real .swatch { background: var(--ink); }
+.curve-legend-item.pred .swatch { background: var(--orange); border: none; }
 
-  .data-note{
-    margin-top:22px;
-    display:flex;
-    gap:14px;
-    align-items:flex-start;
-    max-width:620px;
-    color:var(--ink-dim);
-    font-size:14.5px;
-  }
-  .data-note .mark{
-    flex:none;
-    width:22px; height:22px;
-    border:1px solid var(--accent);
-    border-radius:50%;
-    color:var(--accent);
-    font-family:ui-monospace, monospace;
-    font-size:12px;
-    display:flex; align-items:center; justify-content:center;
-    margin-top:2px;
-  }
+/* ── 유사 선수 (comp) ── */
+.comp-row {
+  margin-top: 32px;
+  display: flex; align-items: stretch; gap: 0; flex-wrap: wrap;
+  border: 1px solid var(--border);
+}
+.comp-card { flex: 1 1 200px; background: var(--bg); padding: 22px 20px; }
+.comp-card.target { border-right: 1px solid var(--border); background: var(--surface); }
+.comp-card .ct-tag {
+  font-family: ui-monospace, monospace;
+  font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.comp-card.target .ct-tag { color: var(--orange); }
+.comp-card .ct-name {
+  font-family: "Arial Black", sans-serif;
+  font-size: 22px; font-weight: 900; margin-top: 8px; color: var(--ink);
+}
+.comp-card .ct-body { margin-top: 10px; font-size: 14px; color: var(--dim); line-height: 1.7; }
+.comp-mid {
+  flex: none; width: 80px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-left: 1px solid var(--border); border-right: 1px solid var(--border);
+  padding: 20px 10px;
+}
+.comp-mid .pct {
+  font-family: "Arial Black", sans-serif;
+  font-size: 26px; font-weight: 900; color: var(--orange);
+}
+.comp-mid .pct-label { font-size: 11px; color: var(--dim); text-align: center; margin-top: 4px; }
+@media (max-width: 640px) {
+  .comp-row { flex-direction: column; }
+  .comp-card.target { border-right: none; border-bottom: 1px solid var(--border); }
+  .comp-mid { width: 100%; height: 60px; flex-direction: row; gap: 10px;
+    border-left: none; border-right: none; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+}
 
-  /* ---------- feature -> output : play diagram ---------- */
-  .play{
-    margin-top:44px;
-    border:1px solid var(--line);
-    padding:40px 32px;
-    background:
-      repeating-linear-gradient(90deg, transparent, transparent 39px, var(--line) 40px);
-    position:relative;
-  }
-  .play-row{
-    display:flex;
-    align-items:center;
-    gap:0;
-    flex-wrap:wrap;
-  }
-  .play-box{
-    border:1.5px solid var(--ink-dim);
-    background:var(--bg);
-    padding:16px 18px;
-    min-width:140px;
-    position:relative;
-  }
-  .play-box.accent{
-    border-color:var(--accent);
-  }
-  .play-box .pb-label{
-    font-family:ui-monospace, monospace;
-    font-size:10.5px;
-    color:var(--ink-faint);
-    text-transform:uppercase;
-    letter-spacing:0.03em;
-  }
-  .play-box .pb-title{
-    margin-top:6px;
-    font-size:15px;
-    font-weight:700;
-    color:var(--ink);
-  }
-  .play-box .pb-items{
-    margin-top:8px;
-    font-size:12.5px;
-    color:var(--ink-dim);
-    line-height:1.7;
-  }
-  .play-arrow{
-    flex:none;
-    width:48px;
-    height:2px;
-    background:var(--ink-faint);
-    position:relative;
-    margin:0 6px;
-  }
-  .play-arrow::after{
-    content:"";
-    position:absolute;
-    right:0; top:50%;
-    width:8px; height:8px;
-    border-top:2px solid var(--ink-faint);
-    border-right:2px solid var(--ink-faint);
-    transform:translateY(-50%) rotate(45deg);
-  }
-  .play-stack{
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-  }
+/* ── 포지션별 커브 ── */
+.pos-grid {
+  margin-top: 32px;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+}
+.pos-card { background: var(--bg); padding: 22px 18px; }
+.pos-card .pos-name {
+  font-family: "Arial Black", sans-serif;
+  font-size: 16px; font-weight: 900; margin-bottom: 12px;
+}
+.pos-card svg { width: 100%; height: auto; display: block; }
+.pos-card .pos-insight { margin-top: 12px; font-size: 13px; color: var(--dim); line-height: 1.6; }
+@media (max-width: 640px) { .pos-grid { grid-template-columns: 1fr; } }
 
-  @media (max-width:760px){
-    .play-row{ flex-direction:column; align-items:stretch; }
-    .play-arrow{
-      width:2px; height:32px; margin:2px 0 2px 20px;
-    }
-    .play-arrow::after{
-      right:-3px; top:auto; bottom:0;
-      transform:rotate(135deg);
-    }
-    .play-box{ width:100%; }
-  }
+/* ── baseline 비교 ── */
+.baseline-table { margin-top: 32px; border: 1px solid var(--border); overflow-x: auto; }
+table.bt {
+  width: 100%; border-collapse: collapse;
+  font-size: 14px; min-width: 480px;
+}
+table.bt th, table.bt td {
+  padding: 12px 16px; text-align: right;
+  border-bottom: 1px solid var(--border);
+}
+table.bt th:first-child, table.bt td:first-child { text-align: left; }
+table.bt th { font-size: 11px; color: var(--dim); background: var(--surface); font-weight: 400; }
+table.bt tr:last-child td { border-bottom: none; }
+table.bt .better { color: var(--green); font-weight: 700; }
+table.bt .highlight td { background: var(--surface); }
+.bt-note { margin-top: 14px; font-size: 13px; color: var(--dim); }
 
-  .curve-example{
-    margin-top:32px;
-    padding-top:28px;
-    border-top:1px dashed var(--line);
-  }
-  .curve-example svg{ width:100%; height:auto; display:block; }
-  .curve-example .path-solid{
-    fill:none;
-    stroke:var(--ink);
-    stroke-width:2.5;
-    stroke-linecap:round;
-  }
-  .curve-example .path-dashed{
-    fill:none;
-    stroke:var(--accent);
-    stroke-width:2.5;
-    stroke-linecap:round;
-    stroke-dasharray:6 6;
-  }
-  .curve-example .curve-tag-actual{ fill:var(--ink-dim); }
-  .curve-example .curve-tag-pred{ fill:var(--accent); }
+/* ── 추가 기능 ── */
+.extra-grid {
+  margin-top: 32px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+}
+.extra-card { background: var(--bg); padding: 24px 20px; }
+.extra-card .ec-tag {
+  font-size: 11px; color: var(--orange); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: 12px;
+}
+.extra-card h3 { font-size: 16px; margin-bottom: 10px; }
+.extra-card p { font-size: 14px; color: var(--dim); line-height: 1.7; }
+@media (max-width: 640px) { .extra-grid { grid-template-columns: 1fr; } }
 
-  .output-note{
-    margin-top:28px;
-    padding-top:24px;
-    border-top:1px dashed var(--line);
-    display:flex;
-    gap:28px;
-    flex-wrap:wrap;
-  }
-  .output-item{
-    flex:1 1 240px;
-  }
-  .output-item .oi-num{
-    font-family:ui-monospace, monospace;
-    color:var(--accent);
-    font-size:13px;
-  }
-  .output-item h4{
-    margin:8px 0 0;
-    font-size:17px;
-    color:var(--ink);
-  }
-  .output-item p{
-    margin:8px 0 0;
-    font-size:14px;
-    color:var(--ink-dim);
-  }
+/* ── 활용 ── */
+.usage-grid {
+  margin-top: 32px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--border); border: 1px solid var(--border);
+}
+.usage-card { background: var(--bg); padding: 24px 20px; }
+.usage-card .uc-icon { font-size: 22px; margin-bottom: 12px; }
+.usage-card h3 { font-size: 16px; margin-bottom: 10px; }
+.usage-card p { font-size: 14px; color: var(--dim); line-height: 1.7; }
+@media (max-width: 640px) { .usage-grid { grid-template-columns: 1fr; } }
 
-  /* ---------- footer ---------- */
-  footer{
-    position:relative;
-    z-index:2;
-    padding:56px 0 60px;
-    border-top:1px solid var(--line);
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    color:var(--ink-faint);
-    font-size:13px;
-  }
-  footer .fmark{
-    font-family:"Arial Narrow", sans-serif;
-    font-weight:800;
-    color:var(--ink-dim);
-    letter-spacing:0.02em;
-  }
+/* ── 한계 ── */
+.limits {
+  margin-top: 32px;
+  display: flex; flex-direction: column; gap: 1px;
+  background: var(--border); border: 1px solid var(--border);
+}
+.limit-item { background: var(--bg); padding: 20px 22px; display: flex; gap: 16px; }
+.limit-icon {
+  flex: none; width: 22px; height: 22px;
+  border: 1px solid var(--red); color: var(--red);
+  font-size: 12px; display: flex; align-items: center; justify-content: center;
+  font-family: ui-monospace, monospace; margin-top: 1px;
+}
+.limit-item h4 { font-size: 15px; margin-bottom: 6px; }
+.limit-item p { font-size: 14px; color: var(--dim); line-height: 1.7; }
 
-  ::selection{ background:var(--accent); color:#12161c; }
+/* ── footer ── */
+footer {
+  position: relative; z-index: 1;
+  border-top: 1px solid var(--border);
+  padding: 44px 0 48px;
+  display: flex; justify-content: space-between; align-items: center;
+  color: var(--dim); font-size: 13px;
+}
+footer .fmark {
+  font-family: "Arial Black", sans-serif;
+  font-weight: 900; color: var(--ink);
+}
 
-  a.skip:focus{
-    position:fixed; top:8px; left:8px; z-index:50;
-    background:var(--accent); color:#12161c; padding:8px 14px;
-  }
-  :focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+::selection { background: var(--orange); color: #0d1117; }
+:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 </style>
 </head>
 <body>
 
-<svg class="court-lines" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
-  <circle cx="500" cy="140" r="220" fill="none" stroke="#1c222b" stroke-width="1"/>
-  <line x1="0" y1="360" x2="1000" y2="360" stroke="#1c222b" stroke-width="1"/>
+<!-- NBA 코트 배경 -->
+<svg class="court-bg" viewBox="0 0 900 1600" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+  <g fill="none" stroke="#f0883e" stroke-width="1.5">
+    <line x1="0" y1="80" x2="900" y2="80"/>
+    <circle cx="450" cy="80" r="80"/>
+    <path d="M 120 80 L 120 320 A 340 340 0 0 0 780 320 L 780 80"/>
+    <rect x="355" y="80" width="190" height="310"/>
+    <circle cx="450" cy="390" r="60"/>
+    <line x1="400" y1="130" x2="500" y2="130"/>
+    <circle cx="450" cy="158" r="15"/>
+    <!-- second half echo -->
+    <line x1="0" y1="1100" x2="900" y2="1100" stroke-width="1"/>
+    <circle cx="450" cy="1100" r="80" stroke-width="1"/>
+  </g>
 </svg>
 
-<header class="top">
-  <div class="wordmark">🏀 NBA · AGING<span>CURVE</span> PROJECT</div>
-  <div class="badge">DL FINAL PROJECT</div>
-</header>
+<nav class="wrap">
+  <div class="nav-logo">
+    <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" style="vertical-align:middle; margin-right:8px;">
+      <circle cx="18" cy="18" r="17" fill="#c9082a" stroke="#1a1a2e" stroke-width="1"/>
+      <path d="M18 1 C18 1 14 8 14 18 C14 28 18 35 18 35" fill="none" stroke="#1a1a2e" stroke-width="1.5"/>
+      <path d="M18 1 C18 1 22 8 22 18 C22 28 18 35 18 35" fill="none" stroke="#1a1a2e" stroke-width="1.5"/>
+      <line x1="1" y1="18" x2="35" y2="18" stroke="#1a1a2e" stroke-width="1.5"/>
+      <path d="M1 11 Q18 6 35 11" fill="none" stroke="#1a1a2e" stroke-width="1"/>
+      <path d="M1 25 Q18 30 35 25" fill="none" stroke="#1a1a2e" stroke-width="1"/>
+    </svg>
+    <span style="color:var(--dim); font-size:14px; font-weight:700; letter-spacing:0.05em;">NBA · <span style="color:var(--orange);">AGING CURVE</span></span>
+  </div>
+  <div class="nav-tag">DL FINAL PROJECT</div>
+</nav>
 
 <main class="wrap">
 
-  <section class="hero" style="border:none; padding-top:20px;">
-    <div class="hero-eyebrow">
-      <span class="dot"></span>
-      선수 성적 궤적 예측 프로젝트
-    </div>
-    <h1>에이징<br><span class="curve-letter">커브</span></h1>
-    <p class="hero-sub">
-      선수의 기록은 나이를 따라 오르고, 어느 순간부터 저문다.
-      그 곡선을 게임 로그로 다시 그리고, 앞으로 이어질 궤적까지 예측한다.
+  <!-- HERO -->
+  <section class="hero" style="border:none; padding-top:64px;">
+    <div class="hero-eyebrow">선수 성적 궤적 예측 프로젝트</div>
+    <h1>에이징<br><em>커브</em></h1>
+    <p class="hero-desc">
+      선수는 언제까지 지금의 폼을 유지할 수 있을까 —
+      감이 아니라, 경기마다 쌓인 기록으로 답한다.
     </p>
 
-    <div class="curve-hero">
-      <svg viewBox="0 0 800 220" aria-hidden="true">
-        <line class="grid-line" x1="0" y1="180" x2="800" y2="180"/>
-        <text class="axis-label" x="0" y="205">신인 시즌</text>
-        <text class="axis-label" x="700" y="205">은퇴 시즌</text>
-        <path class="path-line" d="M 10 160 C 120 40, 220 20, 300 30 S 480 90, 560 130 S 720 170, 790 178" />
-      </svg>
+    <div class="stat-strip">
+      <div class="stat-item">
+        <div class="stat-num">1947</div>
+        <div class="stat-label">데이터 시작 연도</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">700+</div>
+        <div class="stat-label">선수 1인당 경기 수</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">9</div>
+        <div class="stat-label">경기당 주요 기록 항목</div>
+      </div>
     </div>
   </section>
 
-  <!-- 01 -->
+  <!-- 01 정의 -->
   <section id="what">
-    <div class="sec-watermark">01</div>
-    <div class="sec-head">
-      <div class="sec-num">01 / 정의</div>
-      <h2 class="sec-title">에이징 커브란</h2>
-    </div>
-    <p class="lede">
-      한 선수의 기록을 나이 순서로 늘어놓으면 곡선이 하나 그려진다.
-      <strong>보통 20대 중반에 정점을 찍고, 그 이후로 서서히 내려온다.</strong>
-      이 흐름을 가리켜 에이징 커브라고 부른다.
+    <div class="sec-label">01 / 이 프로젝트는</div>
+    <h2 class="sec-title">에이징 커브란 무엇이고,<br>왜 만드나</h2>
+    <p class="body-text">
+      선수의 성적을 나이 순서대로 쭉 늘어놓으면 하나의 곡선이 생긴다.
+      대부분 <strong>20대 중반에 정점을 찍고, 그 이후 서서히 내려간다.</strong>
+      이걸 "에이징 커브"라고 부른다.
     </p>
-    <p class="body-col">
-      문제는 이 곡선이 선수마다 다르게 그려진다는 것이다. 어떤 선수는 일찍 만개했다가
-      빠르게 꺾이고, 어떤 선수는 늦게 터져서 오래 유지한다. 리그 전체를 뭉뚱그린
-      평균 곡선 하나로는 이 개인차를 설명할 수 없다.
-    </p>
-    <p class="body-col">
-      이 프로젝트의 목적은, 리그 평균이 아니라
-      <strong style="color:var(--ink)">한 선수가 지금까지 걸어온 궤적을 보고 그 선수만의 다음 챕터를 예측</strong>
-      하는 것이다. 다음 시즌 성적은 오를지 내릴지, 지금의 페이스를 얼마나 더 유지할 수 있을지.
+    <p class="body-text" style="margin-top:12px;">
+      문제는 이 곡선이 선수마다 다르다는 거다. 어떤 선수는 일찍 만개했다가
+      빠르게 꺾이고, 어떤 선수는 늦게 터져서 오래 유지한다.
+      지금까지의 방법은 리그 전체를 한데 묶어 평균 곡선을 그리는 것 —
+      그 선수만의 흐름은 보지 않는 셈이다.
     </p>
 
-    <div class="why-box">
-      <div class="why-label">🏀 왜 이 프로젝트인가</div>
+    <div class="callout">
+      <p><strong>이 프로젝트의 목표</strong></p>
       <p>
-        스포츠 기사에서 "이 선수 이제 하락세다"라는 말은 늘 나오지만, 그 판단은
-        대개 감(感)이나 시즌 평균 몇 개에 기댄다. 반대로 세이버메트릭스식 에이징
-        커브 연구는 리그 전체를 뭉뚱그린 평균 곡선이라, 정작 궁금한
-        "이 선수는 어떤가"라는 질문엔 답을 못 준다.
+        리그 평균이 아니라, <strong>그 선수가 지금까지 걸어온 경기 기록 하나하나를 보고</strong>
+        그 선수만의 앞으로를 예측한다. 다음 시즌 성적은 오를지 내릴지,
+        언제쯤 전성기가 저물지 — 곡선으로 그려낸다.
+      </p>
+    </div>
+
+    <div class="callout" style="margin-top:20px; border-left-color:var(--blue);">
+      <p><strong>왜 이 주제를 선택했는가</strong></p>
+      <p>
+        스포츠 뉴스에서 "이 선수 이제 하락세다"라는 말은 늘 나오지만, 그 판단은
+        대부분 시즌 평균 몇 개와 눈으로 본 경기 인상에 의존한다.
+        반면 학계의 에이징 커브 연구는 리그 전체를 뭉뚱그린 평균 곡선이라,
+        "이 선수는 언제 꺾이나"라는 질문에 개인화된 답을 주지 못한다.
       </p>
       <p>
-        그 사이 어딘가 — 감이 아니라 근거를 가지고, 개인의 실제 흐름을 그대로
-        따라가며 다음을 그려보고 싶었다. 마침 커리어라는 게 원래 순서를 가진
-        데이터이기도 해서, 시퀀스를 다루는 딥러닝을 실제 동적인 문제에
-        적용해보는 연습이기도 하다.
+        그 사이 어딘가 — 경기 단위로 쌓인 실제 기록을 있는 그대로 학습해서,
+        감이 아니라 궤적으로 미래를 그려보고 싶었다. 마침 커리어 자체가
+        순서를 가진 시퀀스 데이터라, 시퀀스를 다루는 딥러닝을 실제
+        동적인 문제에 적용해보는 좋은 기회이기도 하다.
       </p>
     </div>
   </section>
 
-  <!-- 02 -->
-  <section id="why-dl">
-    <div class="sec-watermark">02</div>
-    <div class="sec-head">
-      <div class="sec-num">02 / 근거</div>
-      <h2 class="sec-title">왜 딥러닝인가</h2>
-    </div>
-    <p class="lede">
-      에이징 커브는 표 몇 줄로 요약되는 정보가 아니라,
-      <strong>경기를 거치며 쌓이는 흐름 그 자체</strong>다.
+  <!-- 02 왜 딥러닝 -->
+  <section id="why">
+    <div class="sec-label">02 / 왜 딥러닝인가</div>
+    <h2 class="sec-title">기존 방법으로는<br>뭘 놓치나</h2>
+    <p class="body-text">
+      지금까지 에이징 커브 연구는 보통 선수의 시즌 평균을 모아서
+      회귀 곡선을 그리는 방식을 썼다. 이것도 의미 있지만,
+      <strong>"어떤 흐름으로 여기까지 왔는가"</strong>는 보지 않는다.
     </p>
 
-    <div class="reasons">
-      <div class="reason">
-        <div class="rk">REASON 01</div>
-        <h3>순서가 곧 정보다</h3>
-        <p>
-          한 선수의 커리어는 경기가 하나씩 이어지며 쌓인 흐름이다.
-          이걸 시즌 평균 하나로 요약해버리는 순간, 최근 몇 경기 사이
-          조용히 시작된 하락이나 반등의 조짐은 사라진다. 순서를 그대로
-          기억하는 구조가 있어야 이런 신호를 놓치지 않는다.
-        </p>
+    <div class="dl-compare">
+      <div class="dl-col old">
+        <div class="dl-col-label">기존 방법 (시즌 집계 통계)</div>
+        <h3>시즌 평균만 본다</h3>
+        <div class="dl-point"><span class="icon">✗</span><span>최근 3시즌 평균 득점 같은 숫자로 다음을 추정 — 흐름이 사라진 정보</span></div>
+        <div class="dl-point"><span class="icon">✗</span><span>시즌 중반부터 조용히 시작된 하락 신호를 다음 해가 되어야 확인 가능</span></div>
+        <div class="dl-point"><span class="icon">✗</span><span>선수마다 다른 개인 패턴을 반영 못 함 — 모두 같은 평균 곡선에 묶임</span></div>
       </div>
-      <div class="reason">
-        <div class="rk">REASON 02</div>
-        <h3>사람이 다 못 짚는다</h3>
-        <p>
-          "요즘 폼이 살아났다"는 감각을 몇 개의 평균값으로 정의하기는
-          어렵다. 어떤 지표의 어떤 조합이, 어느 타이밍에 신호가 되는지는
-          사람이 미리 정해두기보다 데이터 스스로 찾아내야 하는 영역이다.
-        </p>
+      <div class="dl-col new">
+        <div class="dl-col-label">이 프로젝트 (경기 단위 시퀀스)</div>
+        <h3>경기 흐름 전체를 본다</h3>
+        <div class="dl-point"><span class="icon">✓</span><span>경기 하나하나를 시간 순서대로 넣어, 미세한 변화 궤적까지 학습</span></div>
+        <div class="dl-point"><span class="icon">✓</span><span>최근 N경기에서 조용히 시작된 하락 조짐을 미리 포착 가능</span></div>
+        <div class="dl-point"><span class="icon">✓</span><span>선수 개인의 이력을 그대로 모델에 넣어, 그 선수만의 커브를 만든다</span></div>
       </div>
-      <div class="reason">
-        <div class="rk">REASON 03</div>
-        <h3>선수마다 다른 곡선</h3>
-        <p>
-          포지션과 스타일, 부상 이력에 따라 곡선의 모양 자체가 달라진다.
-          하나의 평균 곡선으로는 설명이 안 되고, 개별 궤적을 그대로
-          학습하는 구조가 있어야 이 차이를 잡아낼 수 있다.
-        </p>
-        <div class="mini-curves">
-          <svg viewBox="0 0 260 90" aria-hidden="true">
-            <path d="M5 75 C 60 20, 90 15, 120 25 S 200 60, 250 78" stroke="#ff6a2b" opacity="0.9"/>
-            <path d="M5 80 C 40 55, 80 40, 130 45 S 210 70, 250 82" stroke="#8d97a3" opacity="0.7"/>
-            <path d="M5 70 C 70 45, 110 60, 150 70 S 220 82, 250 85" stroke="#4b525c" opacity="0.8"/>
-          </svg>
-        </div>
-      </div>
+    </div>
+
+    <div class="callout" style="margin-top:28px;">
+      <p>
+        이런 "순서가 있는 데이터"는 딥러닝(LSTM/Transformer) 없이는
+        제대로 다루기 어렵다. "어제가 오늘에 영향을 준다"는 시간적 흐름을
+        학습하는 게 이 모델의 핵심이다.
+      </p>
     </div>
   </section>
 
-  <!-- 03 -->
+  <!-- 03 데이터 -->
   <section id="data">
-    <div class="sec-watermark">03</div>
-    <div class="sec-head">
-      <div class="sec-num">03 / 데이터</div>
-      <h2 class="sec-title">어떤 데이터를 쓰는가</h2>
-    </div>
-    <p class="lede">
-      시즌 요약이 아니라 <strong>경기 단위 기록</strong>을 그대로 쓴다.
+    <div class="sec-label">03 / 데이터</div>
+    <h2 class="sec-title">어떤 기록을 쓰는가</h2>
+    <p class="body-text">
+      NBA 선수들의 <strong>경기별 개인 박스스코어</strong>를 사용한다.
+      시즌 평균이 아니라, 경기 하나하나가 한 줄씩 쌓인 기록이다.
     </p>
-    <p class="body-col">
-      NBA 공식 기록을 정리한, 선수 개인의 경기별 박스스코어 데이터베이스를
-      사용한다. 득점·리바운드·어시스트·출전시간 같은 항목이 경기마다 한 줄씩
-      쌓여 있고, 매일 갱신되는 공개 데이터라 최근 시즌까지 이어서 볼 수 있다.
-      시즌당 하나로 뭉친 숫자가 아니라, 선수 한 명당 수백에서 수천 개의
-      기록이 순서대로 이어진 시퀀스를 이렇게 구성한다.
+    <p class="body-text">
+      사용 데이터셋: Kaggle <strong>"Historical NBA Data and Player Box Scores"</strong>
+      — 1947년부터 현재까지 매일 업데이트되는 경기 단위 개인 기록.
+      득점·리바운드·어시스트·출전시간·야투율 등 9개 이상의 항목이 포함돼 있다.
     </p>
 
-    <div class="boxscore">
-      <div class="boxscore-head">
-        <span class="tag">Player Game Log</span>
-        <span class="tag2">예시 · 가상의 선수 K</span>
-      </div>
-      <table class="stat-table">
+    <div class="callout" style="margin-top:20px; border-left-color:var(--blue);">
+      <p><strong>예시: Stephen Curry의 경기 기록</strong></p>
+      <p>
+        커리는 2009년 NBA 드래프트에 입단해 초반엔 발목 부상으로 기복이 있었지만,
+        2014~15시즌부터 급격히 개화해 2시즌 연속 MVP를 받았다.
+        아래 표는 그 전성기 전후 실제 경기 기록 흐름이다 — 시즌 평균만 보면
+        "그냥 잘하는 선수"지만, 경기 단위로 보면 어느 시점부터 3점 시도·야투율이
+        갑자기 치솟는 <strong>변곡점</strong>이 드러난다.
+      </p>
+    </div>
+
+    <div class="data-table">
+      <table class="dt">
         <thead>
           <tr>
-            <th>Game</th>
-            <th>Age</th>
-            <th>Min</th>
-            <th>Pts</th>
-            <th>Reb</th>
-            <th>Ast</th>
-            <th>FG%</th>
+            <th>경기</th><th>나이</th><th>출전시간</th>
+            <th>득점</th><th>어시스트</th><th>3점 시도</th><th>야투율</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td>G612</td><td>26.8</td><td>34</td><td>24</td><td>5</td><td>6</td><td>48.1</td></tr>
-          <tr><td>G613</td><td>26.8</td><td>33</td><td>21</td><td>6</td><td>7</td><td>45.0</td></tr>
-          <tr><td>G614</td><td>26.9</td><td>31</td><td>19</td><td>4</td><td>5</td><td>43.7</td></tr>
-          <tr><td class="ellipsis" colspan="7">⋮</td></tr>
-          <tr><td>G748</td><td>28.2</td><td>27</td><td>15</td><td>4</td><td>4</td><td>41.2</td></tr>
-          <tr><td>G749</td><td>28.2</td><td>25</td><td>13</td><td>3</td><td>4</td><td>39.8</td></tr>
+          <tr><td class="game-id">시즌 5년차 G1</td><td>25.8</td><td>31분</td><td>22</td><td>7</td><td>8개</td><td>43.6%</td></tr>
+          <tr><td class="game-id">시즌 5년차 G40</td><td>26.1</td><td>34분</td><td>29</td><td>8</td><td>11개</td><td>47.8%</td></tr>
+          <tr><td class="game-id">시즌 6년차 G1</td><td>26.9</td><td>33분</td><td>31</td><td>9</td><td>13개</td><td>50.4%</td></tr>
+          <tr><td class="game-id" colspan="7" style="text-align:center; color:var(--dim);">⋮ 전성기 지속 ⋮</td></tr>
+          <tr><td class="game-id">시즌 12년차 G60</td><td>33.4</td><td>30분</td><td>24</td><td>6</td><td>9개</td><td>44.1%</td></tr>
         </tbody>
       </table>
     </div>
 
-    <div class="data-note">
-      <span class="mark">i</span>
-      <p style="margin:0;">
-        한 행이 곧 한 경기다. 위 예시처럼, 가상의 선수 K는 26.8세부터 28.2세
-        사이 137경기를 치르는 동안 출전시간·득점·야투율이 조금씩 낮아지는
-        흐름을 보인다 — 시즌 평균만 봐서는 눈에 잘 안 띄지만, 경기 단위로
-        이어보면 드러나는 하락 신호다. 이 행들을 나이 순서대로 이어붙이면
-        선수 한 명의 커리어 전체가 하나의 시퀀스가 된다.
+    <div class="callout" style="margin-top:20px;">
+      <p>
+        이 흐름을 모델에 넣으면 "커리의 3점 혁명이 언제 시작됐는지",
+        "지금 33세의 기록이 어디로 향하는지"를 곡선으로 이어 예측할 수 있다.
       </p>
     </div>
   </section>
 
-  <!-- 04 -->
-  <section id="pipeline">
-    <div class="sec-watermark">04</div>
-    <div class="sec-head">
-      <div class="sec-num">04 / 구조</div>
-      <h2 class="sec-title">피처와 출력</h2>
-    </div>
-    <p class="lede">
-      정적인 정보와, 흐르는 정보를 각각 다르게 넣고 —
-      <strong>숫자 하나가 아니라 앞으로 이어질 곡선</strong>을 뱉어낸다.
-    </p>
-    <p class="body-col">
-      앞서 본 가상의 선수 K로 이어서 보면 이렇다. K가 지금까지 뛴 749경기
-      전체를 순서 그대로 모델에 넣는다. 여기에 포지션·신장 같은 안 변하는
-      정보를 더한다. 모델은 이 둘을 합쳐 "K의 지금 흐름"을 압축하고,
-      <strong style="color:var(--ink)">다음 시즌 하나가 아니라 앞으로 3~5시즌치 평균 득점을 한 번에</strong>
-      내놓는다. 이 값들을 지금까지의 실제 기록 뒤에 이어 붙이면, 과거 실선과
-      미래 예측선이 하나로 연결된 진짜 "에이징 커브"가 완성된다.
+  <!-- 04 어떻게 진행되는가 -->
+  <section id="process">
+    <div class="sec-label">04 / 진행 방식</div>
+    <h2 class="sec-title">프로젝트가<br>어떻게 흘러가나</h2>
+    <p class="body-text">
+      데이터를 수집하고, 모델을 학습시키고, 결과를 검증하는
+      전체 흐름을 단계별로 정리하면 이렇다.
     </p>
 
-    <div class="play">
-      <div class="play-row">
-        <div class="play-stack">
-          <div class="play-box">
-            <div class="pb-label">Static · 안 변함</div>
-            <div class="pb-title">선수 기본 정보</div>
-            <div class="pb-items">포지션 · 신장/체중 · 데뷔 나이</div>
-          </div>
-          <div class="play-box accent">
-            <div class="pb-label">Sequence · 749경기</div>
-            <div class="pb-title">K의 경기별 기록 흐름</div>
-            <div class="pb-items">G1 → G2 → G3 → ⋯ → G749<br>(득점·리바운드·출전시간·나이)</div>
-          </div>
-        </div>
-
-        <div class="play-arrow"></div>
-
-        <div class="play-box">
-          <div class="pb-label">Encoder → Decoder</div>
-          <div class="pb-title">궤적 인코더</div>
-          <div class="pb-items">749경기의 흐름을 압축한 뒤<br>미래 시즌을 한 스텝씩 이어 예측</div>
-        </div>
-
-        <div class="play-arrow"></div>
-
-        <div class="play-box accent">
-          <div class="pb-label">Output · 곡선</div>
-          <div class="pb-title">향후 시즌들의 예측선</div>
-          <div class="pb-items">29세 13.8 → 30세 12.1<br>→ 31세 10.6 → 32세 9.4</div>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div>
+          <h4>데이터 수집 및 전처리</h4>
+          <p>경기 기록을 선수별로 나이 순서대로 정렬한다. 부상으로 결장한 구간, 출전시간이 비정상적으로 짧은 경기(가비지 타임) 등을 걸러낸다.</p>
         </div>
       </div>
-
-      <div class="curve-example">
-        <svg viewBox="0 0 700 160" aria-hidden="true">
-          <line class="grid-line" x1="0" y1="130" x2="700" y2="130"/>
-          <path class="path-solid" d="M 10 90 C 90 30, 160 20, 230 35 S 350 75, 420 95" />
-          <path class="path-dashed" d="M 420 95 C 480 108, 540 118, 630 132" />
-          <circle cx="420" cy="95" r="4" fill="#edeef0"/>
-          <text class="axis-label" x="330" y="112">현재 (28.2세)</text>
-          <text class="axis-label curve-tag-actual" x="60" y="20">실제 기록</text>
-          <text class="axis-label curve-tag-pred" x="500" y="150">예측 곡선</text>
-        </svg>
-      </div>
-
-      <div class="output-note">
-        <div class="output-item">
-          <div class="oi-num">핵심 출력</div>
-          <h4>향후 N시즌의 곡선 연장</h4>
-          <p>다음 시즌부터 몇 시즌 뒤까지, 순서대로 이어지는 값들의 시퀀스. 실제 기록 뒤에 이어 붙이면 K의 커브 전체가 완성된다.</p>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div>
+          <h4>시퀀스 구성</h4>
+          <p>각 선수의 경기 기록을 시간 순서대로 이어 붙인다. "선수 한 명 = 수백~수천 개 경기의 시퀀스" 형태가 된다.</p>
         </div>
-        <div class="output-item">
-          <div class="oi-num">파생 정보</div>
-          <h4>정점 통과 여부</h4>
-          <p>예측된 값이 계속 떨어지면 이미 정점을 지난 것, 오르고 있다면 아직 상승 구간이라는 걸 곡선 모양으로 바로 읽을 수 있다.</p>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div>
+          <h4>모델 학습</h4>
+          <p>이 시퀀스를 LSTM/Transformer에 넣어 "이 흐름 다음엔 어떻게 되는가"를 학습시킨다. 정적 정보(포지션, 신장)도 함께 반영한다.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div>
+          <h4>예측 및 검증</h4>
+          <p>학습된 모델에 선수 이름을 넣으면, 지금까지의 실제 기록에 이어지는 예측 곡선이 그려진다. 기존 통계 방법(시즌 평균 기반)과 성능을 비교한다.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div>
+          <h4>유사 선수 탐색</h4>
+          <p>모델이 압축한 선수의 벡터를 비교해, 커리어 궤적이 가장 닮은 과거 선수를 찾는다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- 05 -->
-  <section id="usage">
-    <div class="sec-watermark">05</div>
-    <div class="sec-head">
-      <div class="sec-num">05 / 활용</div>
-      <h2 class="sec-title">이 예측, 어디에 쓰나</h2>
+  <!-- 05 구조 / 출력 -->
+  <section id="output">
+    <div class="sec-label">05 / 모델 구조</div>
+    <h2 class="sec-title">뭘 넣고,<br>뭐가 나오나</h2>
+    <p class="body-text">
+      두 종류의 정보를 합쳐 넣으면, <strong>앞으로 이어질 곡선</strong>이 나온다.
+    </p>
+
+    <div class="pipeline">
+      <div class="pipe-flow">
+        <div class="pipe-card">
+          <div class="pc-step">1</div>
+          <span class="pc-icon">🗂️</span>
+          <div class="pc-name">기본 프로필</div>
+          <div class="pc-sub">포지션 · 신장/체중<br>데뷔 나이</div>
+        </div>
+        <div class="pipe-card hi">
+          <div class="pc-step">2</div>
+          <span class="pc-icon">📈</span>
+          <div class="pc-name">경기별 기록 흐름</div>
+          <div class="pc-sub">G1 → G2 → ⋯ → G749<br>득점·리바운드·출전시간</div>
+        </div>
+        <div class="pipe-card">
+          <div class="pc-step">3</div>
+          <span class="pc-icon">🧠</span>
+          <div class="pc-name">LSTM / Transformer</div>
+          <div class="pc-sub">흐름을 압축하고<br>미래를 스텝별로 예측</div>
+        </div>
+        <div class="pipe-card hi">
+          <div class="pc-step">4</div>
+          <span class="pc-icon">📉</span>
+          <div class="pc-name">향후 시즌 예측선</div>
+          <div class="pc-sub">29세 → 30세 → 31세<br>각 시즌 예상 성적 곡선</div>
+        </div>
+      </div>
     </div>
-    <p class="lede">
-      곡선 하나로 그려지는 순간, 여러 자리에서 쓸모가 생긴다.
+
+    <div class="curve-box">
+      <svg viewBox="0 0 720 200" aria-hidden="true">
+        <!-- 전성기 구간 하이라이트 -->
+        <rect x="175" y="18" width="160" height="148" fill="#f0883e" opacity="0.06" rx="2"/>
+        <text fill="#f0883e" font-size="11" x="255" y="34" text-anchor="middle" font-family="Arial, sans-serif">전성기</text>
+        <!-- 그리드 -->
+        <line class="grid" x1="58" y1="18" x2="58" y2="166"/>
+        <line class="grid" x1="58" y1="166" x2="708" y2="166"/>
+        <line class="grid" stroke-dasharray="4 4" x1="58" y1="116" x2="708" y2="116"/>
+        <line class="grid" stroke-dasharray="4 4" x1="58" y1="66" x2="708" y2="66"/>
+        <!-- y 레이블 -->
+        <text class="cg-label" x="50" y="170" text-anchor="end">하위</text>
+        <text class="cg-label" x="50" y="120" text-anchor="end">중위</text>
+        <text class="cg-label" x="50" y="70" text-anchor="end">상위</text>
+        <!-- 나이 레이블 -->
+        <text class="cg-label" x="80" y="184" text-anchor="middle">22세</text>
+        <text class="cg-label" x="200" y="184" text-anchor="middle">26세</text>
+        <text class="cg-label" x="335" y="184" text-anchor="middle">30세</text>
+        <text class="cg-label" x="470" y="184" text-anchor="middle">34세</text>
+        <text class="cg-label" x="600" y="184" text-anchor="middle">38세</text>
+        <!-- 실제 기록선 -->
+        <path class="path-real"
+          d="M 70 148 C 110 118, 150 70, 195 52 S 290 46, 335 60 S 400 95, 440 112"/>
+        <!-- 예측선 -->
+        <path class="path-pred"
+          d="M 440 112 C 490 128, 545 145, 610 157 S 675 163, 705 165"/>
+        <!-- 현재 마커 -->
+        <circle cx="440" cy="112" r="6" fill="#161b22" stroke="#e6edf3" stroke-width="2"/>
+        <line x1="440" y1="112" x2="440" y2="170" stroke="#7d8590" stroke-width="1" stroke-dasharray="3 3"/>
+        <text class="cg-label" x="444" y="165" font-size="11">현재</text>
+        <!-- 레이블 -->
+        <text class="cg-label" x="100" y="40" font-size="11">← 실제 기록</text>
+        <text fill="#f0883e" font-size="11" x="560" y="142" font-family="Arial, sans-serif">예측선 →</text>
+      </svg>
+      <div class="curve-legend">
+        <div class="curve-legend-item real"><div class="swatch"></div> 실제 경기 기록</div>
+        <div class="curve-legend-item pred"><div class="swatch" style="background:var(--orange);"></div> 모델 예측선</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);">
+          <div style="width:14px;height:14px;background:#f0883e;opacity:0.2;border-radius:2px;"></div>전성기 구간
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 포지션별 커브 -->
+  <section id="positions">
+    <div class="sec-label">06 / 인사이트</div>
+    <h2 class="sec-title">포지션마다<br>곡선 모양이 다르다</h2>
+    <p class="body-text">
+      가드, 포워드, 센터는 의존하는 신체 능력이 달라서
+      <strong>하락이 시작되는 시점과 속도가 다를 것</strong>이라는 게 스포츠 업계의 통설이다.
+      이 프로젝트가 보여줄 수 있는 핵심 인사이트 중 하나다.
+    </p>
+
+    <div class="pos-grid">
+      <div class="pos-card">
+        <div class="pos-name">가드 (G)</div>
+        <svg viewBox="0 0 200 100" aria-hidden="true">
+          <line stroke="#30363d" stroke-width="1" x1="0" y1="85" x2="200" y2="85"/>
+          <path fill="none" stroke="#f0883e" stroke-width="2.5" stroke-linecap="round"
+            d="M 5 75 C 40 20, 70 10, 95 20 S 140 55, 195 80"/>
+        </svg>
+        <p class="pos-insight">
+          스피드·순발력 의존 → <strong>30세 전후 빠르게 꺾이는 경향</strong>
+        </p>
+      </div>
+      <div class="pos-card">
+        <div class="pos-name">포워드 (F)</div>
+        <svg viewBox="0 0 200 100" aria-hidden="true">
+          <line stroke="#30363d" stroke-width="1" x1="0" y1="85" x2="200" y2="85"/>
+          <path fill="none" stroke="#388bfd" stroke-width="2.5" stroke-linecap="round"
+            d="M 5 72 C 50 25, 85 18, 110 25 S 165 55, 195 76"/>
+        </svg>
+        <p class="pos-insight">
+          균형 잡힌 의존 → <strong>정점이 좀 더 넓게, 완만하게 이어짐</strong>
+        </p>
+      </div>
+      <div class="pos-card">
+        <div class="pos-name">센터 (C)</div>
+        <svg viewBox="0 0 200 100" aria-hidden="true">
+          <line stroke="#30363d" stroke-width="1" x1="0" y1="85" x2="200" y2="85"/>
+          <path fill="none" stroke="#3fb950" stroke-width="2.5" stroke-linecap="round"
+            d="M 5 68 C 55 32, 95 24, 125 30 S 175 60, 195 72"/>
+        </svg>
+        <p class="pos-insight">
+          파워·몸싸움 의존 → <strong>상대적으로 늦게 꺾이는 경향</strong>
+        </p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-top:24px;">
+      <p>
+        이건 추측이 아니라 데이터가 실제로 이 패턴을 보여주는지 확인하는 실험이다.
+        "통설이 맞다/틀리다"는 결과 모두 흥미로운 인사이트가 된다.
+      </p>
+    </div>
+  </section>
+
+  <!-- 07 기본 모델 비교 -->
+  <section id="baseline">
+    <div class="sec-label">07 / 기존 방법 대비 개선점</div>
+    <h2 class="sec-title">경기 흐름을 보면<br>뭐가 달라지나</h2>
+    <p class="body-text">
+      기존의 시즌 집계 통계 방법과 비교했을 때,
+      경기 단위 시퀀스를 학습한 이 모델이 <strong>구체적으로 어떤 상황에서 더 잘 동작하는지</strong> 보여준다.
+    </p>
+
+    <div class="dl-compare" style="margin-top:28px;">
+      <div class="dl-col old">
+        <div class="dl-col-label">기존 방법</div>
+        <h3>시즌 평균 기반 예측</h3>
+        <div class="dl-point"><span class="icon">✗</span><span><strong>하락 시점 포착 늦음</strong> — 시즌이 끝나야 평균이 계산되니, 그 해 중반부터 시작된 하락을 다음 해가 되어서야 인지</span></div>
+        <div class="dl-point"><span class="icon">✗</span><span><strong>모든 선수에 같은 공식</strong> — "나이가 들면 이렇게 된다"는 리그 평균 공식을 개인에게 그대로 적용</span></div>
+        <div class="dl-point"><span class="icon">✗</span><span><strong>변곡점 미포착</strong> — 커리처럼 특정 시즌 갑자기 스타일이 바뀌는 선수의 전환점을 평균값은 잡아내지 못함</span></div>
+      </div>
+      <div class="dl-col new">
+        <div class="dl-col-label">이 프로젝트</div>
+        <h3>경기 단위 시퀀스 학습</h3>
+        <div class="dl-point"><span class="icon">✓</span><span><strong>조기 경보 가능</strong> — 최근 수십 경기의 미세한 기록 변화를 보기 때문에, 하락 신호를 시즌이 끝나기 전에 감지</span></div>
+        <div class="dl-point"><span class="icon">✓</span><span><strong>선수 개인 맞춤</strong> — 그 선수가 지금까지 보여온 고유한 흐름 패턴을 그대로 학습해 개인화된 예측</span></div>
+        <div class="dl-point"><span class="icon">✓</span><span><strong>변곡점 반영</strong> — 커리의 3점 혁명처럼 기록 흐름이 확 바뀌는 구간을 학습 데이터에서 인식하고 반영</span></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 08 유사 선수 + 추가 기능 -->
+  <section id="extras">
+    <div class="sec-label">08 / 추가 기능</div>
+    <h2 class="sec-title">예측 이상의<br>부가 기능들</h2>
+    <p class="body-text">
+      모델이 선수를 분석하는 과정에서 파생되는 기능들이다.
+      메인 예측(에이징 커브)과 자연스럽게 연결된다.
+    </p>
+
+    <div class="callout" style="margin-top:20px;">
+      <p><strong>유사 선수 찾기</strong></p>
+      <p>
+        모델이 선수의 경기 흐름을 압축할 때, 내부적으로 그 선수를 하나의
+        벡터(숫자 묶음)로 만든다. 이 벡터끼리 비교하면 "커리어 궤적이
+        가장 닮은 과거 선수"를 찾아낼 수 있다.
+      </p>
+    </div>
+
+    <div class="comp-row" style="margin-top:20px;">
+      <div class="comp-card target">
+        <div class="ct-tag">현재 예측 대상</div>
+        <div class="ct-name">선수 K</div>
+        <div class="ct-body">28세, 4년차.<br>최근 폼이 미세하게 꺾이는 중.<br>포인트 가드.</div>
+      </div>
+      <div class="comp-mid">
+        <div class="pct">91%</div>
+        <div class="pct-label">궤적 일치도</div>
+      </div>
+      <div class="comp-card">
+        <div class="ct-tag">가장 닮은 과거 선수</div>
+        <div class="ct-name">선수 M</div>
+        <div class="ct-body">같은 나이대 궤적이 91% 일치.<br>이후 3시즌 완만히 하락 후 안정 →<br>K도 비슷한 흐름 가능성.</div>
+      </div>
+    </div>
+
+    <div class="extra-grid" style="margin-top:28px;">
+      <div class="extra-card">
+        <div class="ec-tag">추가 기능 01</div>
+        <h3>두 모델의 예측선 비교</h3>
+        <p>같은 선수에 대해 기존 통계 방법과 LSTM이 그린 예측선을 같은 그래프에 겹쳐 보여준다. 숫자 비교보다 훨씬 직관적으로 차이가 드러난다.</p>
+      </div>
+      <div class="extra-card">
+        <div class="ec-tag">추가 기능 02</div>
+        <h3>여러 스탯 동시 예측</h3>
+        <p>득점 하나만이 아니라 리바운드·어시스트·PER(종합 효율 지수)를 한 번에 예측해, 선수의 기량이 종합적으로 어떻게 변해갈지 보여준다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 활용 -->
+  <section id="usage">
+    <div class="sec-label">09 / 활용 방안</div>
+    <h2 class="sec-title">이 예측,<br>어디에 쓸 수 있나</h2>
+    <p class="body-text">
+      곡선 하나가 그려지는 순간, 여러 자리에서 쓸모가 생긴다.
     </p>
 
     <div class="usage-grid">
       <div class="usage-card">
-        <div class="usage-icon">🏀</div>
+        <div class="uc-icon">🏀</div>
         <h3>구단 트레이드·재계약 판단</h3>
-        <p>이 선수와 다년 계약을 맺어도 되는지, 하락이 언제쯤 시작될지 미리 참고할 수 있는 근거 자료.</p>
+        <p>이 선수와 다년 계약을 맺어도 되는지, 하락이 언제쯤 시작될지 데이터 기반으로 미리 참고할 수 있다.</p>
       </div>
       <div class="usage-card">
-        <div class="usage-icon">📊</div>
+        <div class="uc-icon">📊</div>
         <h3>판타지 스포츠·예측 커뮤니티</h3>
-        <p>다음 시즌 이 선수 스탯이 오를지 내릴지, 드래프트·트레이드 결정에 참고할 지표로 활용.</p>
+        <p>다음 시즌 이 선수 스탯이 오를지 내릴지, 드래프트·트레이드 결정에 참고하는 지표로 활용할 수 있다.</p>
       </div>
       <div class="usage-card">
-        <div class="usage-icon">🎙️</div>
-        <h3>미디어·분석 콘텐츠</h3>
-        <p>"이 선수 앞으로 몇 년 더 이 폼을 유지할까" 같은 질문에 감이 아니라 곡선으로 답하는 콘텐츠 소재.</p>
+        <div class="uc-icon">🎙️</div>
+        <h3>스포츠 미디어·분석 콘텐츠</h3>
+        <p>"이 선수 앞으로 몇 년 더 이 폼을 유지할까" 라는 질문에 감이 아니라 곡선으로 답할 수 있다.</p>
       </div>
       <div class="usage-card">
-        <div class="usage-icon">🩹</div>
+        <div class="uc-icon">🩹</div>
         <h3>선수 개인의 커리어 관리</h3>
-        <p>하락 조짐이 곡선에 먼저 보이면, 훈련 강도나 출전 페이스를 조절할 시점을 가늠하는 참고 자료.</p>
+        <p>하락 조짐이 곡선에 먼저 보이면, 훈련 강도나 출전 페이스를 조절할 시점을 판단하는 근거가 된다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 예상되는 문제와 대응 -->
+  <section id="issues">
+    <div class="sec-label">10 / 예상되는 문제</div>
+    <h2 class="sec-title">미리 예상되는 문제들과<br>우리의 대응</h2>
+    <p class="body-text">
+      모델을 만들다 보면 마주칠 수 있는 문제들을 미리 짚고,
+      어떻게 대응할지 설계 단계에서 정리해둔다.
+    </p>
+
+    <div class="flow" style="margin-top:28px;">
+      <div class="flow-step">
+        <div class="flow-num" style="border-color:var(--blue); color:var(--blue);">Q</div>
+        <div>
+          <h4>30대에 갑자기 폼이 살아나는 선수는 어떻게 처리하나?</h4>
+          <p style="margin-top:6px; color:var(--dim); font-size:14px;">
+            르브론 제임스처럼 특이한 관리 루틴으로 30대에도 전성기 유지 혹은
+            반등하는 케이스 — 과거 흐름을 보는 모델이 이를 예측하기 어렵다.
+          </p>
+          <p style="margin-top:8px; font-size:14px; color:var(--ink);">
+            <strong>대응:</strong> 최근 경기에 더 높은 가중치를 두는 구조를 써서,
+            선수가 반등 흐름을 보이기 시작하면 모델도 빠르게 따라잡도록 한다.
+            "변화 직후"는 예측이 불안정하지만, 수십 경기 이후엔 새 패턴을 반영하기
+            시작한다는 점을 결과에서 보여준다.
+          </p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="border-color:var(--blue); color:var(--blue);">Q</div>
+        <div>
+          <h4>학습 데이터에 없는 "전례 없는" 선수 유형은?</h4>
+          <p style="margin-top:6px; color:var(--dim); font-size:14px;">
+            역대급 롱런 선수처럼 데이터에 극히 드문 유형은,
+            비슷한 사례가 부족해 모델이 흔들릴 수 있다.
+          </p>
+          <p style="margin-top:8px; font-size:14px; color:var(--ink);">
+            <strong>대응:</strong> 유사 선수 탐색(05번 comp 기능)의 일치도를 신뢰도 지표로 활용한다.
+            일치도가 높으면 예측이 안정적, 낮으면 "이 선수는 전례가 드문 유형입니다"라는
+            경고와 함께 예측 범위(최솟값~최댓값)를 함께 표시해 불확실성을 솔직하게 드러낸다.
+          </p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num" style="border-color:var(--blue); color:var(--blue);">Q</div>
+        <div>
+          <h4>시퀀스 길이가 선수마다 다르면?</h4>
+          <p style="margin-top:6px; color:var(--dim); font-size:14px;">
+            신인 선수는 경기 기록이 수십 개뿐이고, 베테랑은 수천 개다.
+            LSTM이 이 차이를 어떻게 다루는가.
+          </p>
+          <p style="margin-top:8px; font-size:14px; color:var(--ink);">
+            <strong>대응:</strong> 최소 출전 경기 수 기준을 두어 데이터가 너무 적은 선수는 제외,
+            패딩(padding)과 마스킹(masking) 기법으로 가변 길이 시퀀스를 처리한다.
+            이 과정 자체가 전처리 파트에서 설명할 주요 내용이 된다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 한계 -->
+  <section id="limits">
+    <div class="sec-label">11 / 한계</div>
+    <h2 class="sec-title">이 모델이<br>못 하는 것들</h2>
+    <p class="body-text">
+      어떤 설계로도 해결하기 어려운 근본적인 한계들이다.
+      이 부분을 솔직하게 짚는 것이 프로젝트 결론의 핵심이다.
+    </p>
+
+    <div class="limits">
+      <div class="limit-item">
+        <div class="limit-icon">!</div>
+        <div>
+          <h4>갑작스러운 부상은 예측 못 한다</h4>
+          <p>ACL 파열처럼 예상치 못한 큰 부상으로 커브가 급격히 무너지는 경우, 모델이 사전에 잡아낼 수 없다. 과거 흐름에서 미래를 추정하는 방식의 근본적 한계다.</p>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">!</div>
+        <div>
+          <h4>수치만 예측한다, 맥락은 모른다</h4>
+          <p>선수가 팀을 옮겼는지, 코치가 바뀌었는지, 역할이 달라졌는지 같은 맥락 정보는 반영하기 어렵다. 성적 수치 뒤에 있는 이야기는 여전히 사람이 해석해야 한다.</p>
+        </div>
+      </div>
+      <div class="limit-item">
+        <div class="limit-icon">!</div>
+        <div>
+          <h4>잘 맞는 케이스 vs 잘 안 맞는 케이스가 분명히 갈린다</h4>
+          <p>"전형적인 에이징 패턴"을 따른 선수는 예측이 안정적이지만,
+          전례 없는 롱런이나 급격한 스타일 전환 선수는 빗나갈 가능성이 크다.
+          결과 발표 때 두 케이스를 나란히 보여주는 것이 가장 정직한 결론이다.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -825,7 +1003,15 @@
 </main>
 
 <footer class="wrap">
-  <div class="fmark">🏀 AGING CURVE</div>
+  <div class="fmark" style="display:flex; align-items:center; gap:10px;">
+    <svg width="28" height="28" viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="17" fill="#c9082a" stroke="#21262d" stroke-width="1"/>
+      <path d="M18 1 C18 1 14 8 14 18 C14 28 18 35 18 35" fill="none" stroke="#21262d" stroke-width="1.5"/>
+      <path d="M18 1 C18 1 22 8 22 18 C22 28 18 35 18 35" fill="none" stroke="#21262d" stroke-width="1.5"/>
+      <line x1="1" y1="18" x2="35" y2="18" stroke="#21262d" stroke-width="1.5"/>
+    </svg>
+    AGING CURVE
+  </div>
   <div>NBA Player Trajectory · Deep Learning Final Project</div>
 </footer>
 
